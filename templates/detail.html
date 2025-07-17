@@ -1,0 +1,29 @@
+{% extends "_layout.html" %}
+
+{% block title %}{{ repair.title }}{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('index') }}" class="btn btn-sm btn-secondary mb-4">← 回首頁</a>
+
+<h1>{{ repair.title }}</h1>
+<p class="text-muted">
+  📅 {{ repair.date }} |
+  👤 {{ repair.author }} |
+  🛠️ {{ repair.category }} |
+  👁️ {{ repair.views }} 次瀏覽
+</p>
+
+<div class="d-flex gap-2 mb-4">
+  {% if session.get('username') == 'admin' %}
+    <form method="POST" action="{{ url_for('delete_repair', repair_id=repair.id) }}" onsubmit="return confirm('確定要刪除這筆紀錄嗎？');">
+      <button type="submit" class="btn btn-danger btn-sm">🗑️ 刪除此紀錄</button>
+    </form>
+  {% endif %}
+</div>
+
+<hr>
+
+<div class="mb-4">
+  {{ repair.details | safe }}
+</div>
+{% endblock %}
