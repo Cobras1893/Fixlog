@@ -1,0 +1,66 @@
+<!-- templates/index.html -->
+{% extends "_layout.html" %}
+
+{% block title %}異常維修紀錄{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h1 class="display-5 fw-bold mb-0">異常維修紀錄總覽</h1>
+  <div>
+    <a href="?sort=default" class="btn btn-outline-secondary btn-sm {% if sort == 'default' %}active{% endif %}">預設</a>
+    <a href="?sort=alpha" class="btn btn-outline-secondary btn-sm {% if sort == 'alpha' %}active{% endif %}">筆畫</a>
+
+    <a href="?sort=date&order={{ 'asc' if order == 'desc' else 'desc' }}" class="btn btn-outline-primary btn-sm {% if sort == 'date' %}active{% endif %}">
+      時間
+      {% if sort == 'date' %}
+        {% if order == 'asc' %}
+          ▲
+        {% else %}
+          ▼
+        {% endif %}
+      {% endif %}
+    </a>
+
+    <a href="?sort=views&order={{ 'asc' if order == 'desc' else 'desc' }}" class="btn btn-outline-primary btn-sm {% if sort == 'views' %}active{% endif %}">
+      瀏覽
+      {% if sort == 'views' %}
+        {% if order == 'asc' %}
+          ▲
+        {% else %}
+          ▼
+        {% endif %}
+      {% endif %}
+    </a>
+  </div>
+</div>
+
+{% if repairs %}
+  {% for r in repairs %}
+    <div class="card mb-3 shadow-sm position-relative">
+      {% if hot_ids and r.id in hot_ids %}
+        <div style="position: absolute; top: 10px; right: 10px; display: flex; align-items: center; background-color: rgba(255, 240, 200, 0.9); border-radius: 6px; padding: 4px 8px; z-index: 10;">
+          <span style="color: #e55300; font-weight: bold; margin-right: 6px;">熱門</span>
+          <img src="{{ url_for('static', filename='img/hot.png') }}" alt="熱門文章" title="熱門文章" style="width: 32px; height: auto;">
+        </div>
+      {% endif %}
+      <div class="card-body">
+        <h3 class="card-title">
+          <a href="{{ url_for('repair_detail', repair_id=r.id) }}" class="text-decoration-none">{{ r.title }}</a>
+        </h3>
+        <p class="text-muted mb-1">📅 {{ r.date }} | 👤 {{ r.author }} | 🏷️ {{ r.status }}</p>
+        <p class="text-muted mb-1">🛠️ {{ r.category }} | 👁️ {{ r.views }} 次瀏覽</p>
+        <a href="{{ url_for('repair_detail', repair_id=r.id) }}" class="btn btn-sm btn-outline-primary">閱讀更多</a>
+        {% if session.get('username') == 'admin' %}
+          <form method="POST" action="{{ url_for('delete_repair', repair_id=r.id) }}" class="d-inline" onsubmit="return confirm('確定要刪除這筆紀錄嗎？');">
+            <button type="submit" class="btn btn-sm btn-outline-danger">刪除</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <div class="alert alert-info text-center">
+    🚫 目前尚無異常維修紀錄。
+  </div>
+{% endif %}
+{% endblock %}

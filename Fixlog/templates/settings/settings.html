@@ -1,0 +1,422 @@
+<!-- templates/settings.html -->
+{% extends "_layout.html" %}
+{% block title %}系統設定{% endblock %}
+
+{% block content %}
+<h1 class="mb-4 fw-bold">⚙️ 系統設定</h1>
+
+<!-- 使用者管理：互動區塊（新增/修改角色、啟用、重設密碼、刪除） -->
+{% if role == 'technician' %}
+<div class="card mb-4 shadow-sm">
+  <div class="card-header bg-light fw-bold">🔧 使用者管理（互動）</div>
+  <div class="card-body">
+    <form id="um-add" class="row g-2 align-items-end mb-3">
+      <div class="col-md-3">
+        <label class="form-label">帳號</label>
+        <input class="form-control" name="username" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">密碼</label>
+        <input class="form-control" name="password" type="password" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">角色</label>
+        <select class="form-select" name="role">
+          <option value="technician" selected>technician</option>
+          <option value="user">user</option>
+        </select>
+      </div>
+      <div class="col-md-3 d-grid">
+        <button class="btn btn-primary">➕ 新增</button>
+      </div>
+      <div id="um-add-msg" class="form-text text-danger"></div>
+    </form>
+
+    <div class="table-responsive">
+      <table class="table table-bordered table-sm align-middle" id="um-table">
+        <thead class="table-light">
+          <tr>
+            <th>帳號</th>
+            <th>角色</th>
+            <th>啟用</th>
+            <th style="width:260px;">動作</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  if ('{{ role }}' !== 'technician') return;
+
+  const $ = (q, root=document) => root.querySelector(q);
+  const $$ = (q, root=document) => Array.from(root.querySelectorAll(q));
+
+  const apiList = '{{ url_for("settings.api_users_list") if "settings.api_users_list" in g|default({}) else "/settings/api/users" }}';
+  const apiBase = '/settings/api/users'; // 後備（即使上面取不到 url_for 也能用）
+
+  async function listUsers() {
+    const res = await fetch(apiList);
+    const j = await res.json();
+    if (!j.ok) { alert('讀取使用者失敗'); return []; }
+    return j.users || [];
+  }
+
+  function render(users) {
+    const tb = $('#um-table tbody');
+    tb.innerHTML = '';
+    users.forEach(u => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${u.username}</td>
+        <td>
+          <select class="form-select form-select-sm um-role">
+            <option value="technician" ${u.role==='technician'?'selected':''}>technician</option>
+            <option value="user" ${u.role==='user'?'selected':''}>user</option>
+          </select>
+        </td>
+        <td>
+          <select class="form-select form-select-sm um-active">
+            <option value="true" ${u.active?'selected':''}>true</option>
+            <option value="false" ${!u.active?'selected':''}>false</option>
+          </select>
+        </td>
+        <td>
+          <div class="d-flex gap-2">
+            <button class="btn btn-success btn-sm um-save">儲存</button>
+            <button class="btn btn-warning btn-sm um-reset">重設密碼</button>
+            <button class="btn btn-danger btn-sm um-del">刪除</button>
+          </div>
+        </td>
+      `;
+      tr.dataset.username = u.username;
+      tb.appendChild(tr);
+    });
+  }
+
+  async function refresh() { render(await listUsers()); }
+
+  // 新增
+  const addForm = $('#um-add');
+  addForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(addForm);
+    const payload = {
+      username: fd.get('username'),
+      password: fd.get('password'),
+      role: fd.get('role')
+    };
+    const res = await fetch(apiBase, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const msg = $('#um-add-msg');
+    msg.textContent = '';
+    const j = await res.json().catch(()=>({}));
+    if (!res.ok || !j.ok) {
+      msg.textContent = (j && j.error) ? j.error : '新增失敗';
+      return;
+    }
+    addForm.reset();
+    await refresh();
+  });
+
+  // 表格事件：儲存 / 重設密碼 / 刪除
+  $('#um-table')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const tr = btn.closest('tr');
+    const username = tr?.dataset.username;
+    if (!username) return;
+
+    if (btn.classList.contains('um-save')) {
+      const role = tr.querySelector('.um-role').value;
+      const active = tr.querySelector('.um-active').value === 'true';
+      const res = await fetch(`${apiBase}/${encodeURIComponent(username)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, active })
+      });
+      const j = await res.json().catch(()=>({}));
+      if (!res.ok || !j.ok) return alert(j.error || '儲存失敗');
+      await refresh();
+    }
+
+    if (btn.classList.contains('um-reset')) {
+      const pwd = prompt('輸入新密碼：');
+      if (!pwd) return;
+      const res = await fetch(`${apiBase}/${encodeURIComponent(username)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd })
+      });
+      const j = await res.json().catch(()=>({}));
+      if (!res.ok || !j.ok) return alert(j.error || '重設失敗');
+      alert('已更新密碼');
+    }
+
+    if (btn.classList.contains('um-del')) {
+      if (!confirm(`確定刪除 ${username}？`)) return;
+      const res = await fetch(`${apiBase}/${encodeURIComponent(username)}`, { method: 'DELETE' });
+      const j = await res.json().catch(()=>({}));
+      if (!res.ok || !j.ok) return alert(j.error || '刪除失敗');
+      await refresh();
+    }
+  });
+
+  // 初始化
+  document.addEventListener('DOMContentLoaded', refresh);
+})();
+</script>
+
+{% endif %}
+
+<!-- 草稿管理 -->
+<div class="card mb-4 shadow-sm">
+  <div class="card-header bg-light fw-bold">📋 草稿管理</div>
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <input id="draft-search" class="form-control" style="max-width:280px;" placeholder="搜尋標題或摘要…">
+      <div class="text-muted small">只顯示目前登入者的草稿</div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-bordered table-sm align-middle" id="drafts-table">
+        <thead class="table-light">
+          <tr>
+            <th style="width:40%;">標題</th>
+            <th style="width:25%;">最後更新</th>
+            <th>摘要</th>
+            <th style="width:180px;">動作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="4" class="text-center text-muted">載入中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (q, root=document) => root.querySelector(q);
+  const $$ = (q, root=document) => Array.from(root.querySelectorAll(q));
+
+  const apiList = '{{ url_for("settings.api_drafts_list") }}';
+  const apiDeleteBase = '{{ url_for("settings.api_draft_delete", draft_id="__D__") }}';
+
+  function fmtTime(ts) {
+    try {
+      const t = (typeof ts === 'number') ? ts*1000 : (String(ts).length === 13 ? Number(ts) : Number(ts)*1000);
+      return new Date(t).toLocaleString();
+    } catch { return String(ts || ''); }
+  }
+
+  async function loadDrafts() {
+    const r = await fetch(apiList);
+    const j = await r.json().catch(()=>({}));
+    if (!j || !j.ok) return [];
+    return j.drafts || [];
+  }
+
+  function renderDrafts(drafts) {
+    const q = $('#draft-search').value.trim().toLowerCase();
+    const tb = $('#drafts-table tbody');
+    tb.innerHTML = '';
+
+    const filtered = drafts.filter(d => {
+      const t = (d.title || '').toLowerCase();
+      const s = (d.summary || '').toLowerCase();
+      return !q || t.includes(q) || s.includes(q);
+    });
+
+    if (!filtered.length) {
+      tb.innerHTML = `<tr><td colspan="4" class="text-center text-muted">沒有草稿</td></tr>`;
+      return;
+    }
+
+    filtered.forEach(d => {
+      const tr = document.createElement('tr');
+      tr.dataset.id = d.id;
+      tr.innerHTML = `
+        <td>${d.title || '(未命名草稿)'}</td>
+        <td>${fmtTime(d.updated_at)}</td>
+        <td class="text-truncate" style="max-width:420px;">${d.summary || ''}</td>
+        <td>
+          <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-primary"href="{{ url_for('new_page') }}?draft_id=${encodeURIComponent(d.id)}">編輯</a>
+            <button class="btn btn-sm btn-danger btn-draft-del">刪除</button>
+          </div>
+        </td>
+      `;
+      tb.appendChild(tr);
+    });
+  }
+
+  async function refreshDrafts() {
+    const drafts = await loadDrafts();
+    window.__drafts_cache = drafts;
+    renderDrafts(drafts);
+  }
+
+  // 搜尋
+  $('#draft-search')?.addEventListener('input', () => {
+    renderDrafts(window.__drafts_cache || []);
+  });
+
+  // 刪除
+  $('#drafts-table')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.btn-draft-del');
+    if (!btn) return;
+    const tr = btn.closest('tr');
+    const id = tr?.dataset.id;
+    if (!id) return;
+
+    if (!confirm('確定刪除這個草稿？此操作無法復原。')) return;
+
+    const url = apiDeleteBase.replace('__D__', encodeURIComponent(id));
+    const r = await fetch(url, { method: 'DELETE' });
+    const j = await r.json().catch(()=>({}));
+    if (!j || !j.ok) {
+      alert(j.error || '刪除失敗');
+      return;
+    }
+    await refreshDrafts();
+  });
+
+  // 初始化
+  document.addEventListener('DOMContentLoaded', refreshDrafts);
+})();
+</script>
+
+  <!-- 外觀與排序偏好 -->
+  <!--
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header bg-light fw-bold">🌈 外觀與排序偏好</div>
+    <div class="card-body">
+      <form id="preferences-form">
+        <div class="mb-3">
+          <label class="form-label">🌙 主題模式：</label>
+          <select name="theme" class="form-select">
+            <option value="light">☀️ 淺色</option>
+            <option value="dark">🌙 深色</option>
+          </select>
+        </div>
+
+        <button class="btn btn-outline-success">💾 儲存偏好</button>
+        <span id="pref-msg" class="ms-2 text-success" style="display:none;">已儲存</span>
+      </form>
+    </div>
+  </div>
+  -->
+  
+
+<script>
+// 偏好設定：用 url_for 產生正確路徑
+document.querySelector('#preferences-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const data = {
+    theme: this.theme.value,
+    default_sort: this.default_sort.value,
+    show_categories: this.show_categories.checked
+  };
+
+  const res = await fetch('{{ url_for("settings.save_preferences") }}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  const j = await res.json().catch(() => ({}));
+  if (j && j.success) {
+    const ok = document.getElementById('pref-msg');
+    ok.style.display = 'inline';
+    setTimeout(() => ok.style.display = 'none', 1500);
+  } else {
+    alert('儲存失敗');
+  }
+});
+
+// 新增使用者：串到 /settings/users/add
+const addForm = document.getElementById('add-user-form');
+if (addForm) {
+  addForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(addForm);
+    const msg = document.getElementById('add-user-msg');
+    msg.textContent = '';
+
+    const res = await fetch('{{ url_for("settings.add_user") }}', {
+      method: 'POST',
+      body: fd
+    });
+
+    if (res.ok) {
+      const j = await res.json();
+      if (j.ok) {
+        // 重新整理以更新上方清單（簡單做法）
+        location.reload();
+        return;
+      }
+    }
+    const j = await res.json().catch(() => ({}));
+    msg.textContent = (j && j.error) ? j.error : '新增失敗';
+  });
+}
+</script>
+<script>
+(function(){
+  const form = document.querySelector('#preferences-form');
+  if (!form) return;
+  const themeSel = form.querySelector('select[name="theme"]');
+  const msg = document.getElementById('pref-msg');
+
+  function applyTheme(theme){
+    document.documentElement.setAttribute('data-bs-theme', theme === 'dark' ? 'dark' : 'light');
+  }
+  function persistClient(theme){
+    try { localStorage.setItem('fixlog_prefs', JSON.stringify({theme})); } catch {}
+    try { document.cookie = `fixlog_theme=${theme}; Path=/; Max-Age=${7*24*3600}`; } catch {}
+  }
+
+  async function loadPrefs(){
+    try {
+      const r = await fetch('{{ url_for("settings.api_get_preferences") }}');
+      const j = await r.json();
+      const theme = (j && j.ok && j.prefs && j.prefs.theme) ? j.prefs.theme : 'light';
+      if (themeSel) themeSel.value = theme;
+      applyTheme(theme);
+      persistClient(theme);
+    } catch(e){}
+  }
+
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const theme = themeSel.value;
+    const r = await fetch('{{ url_for("settings.save_preferences") }}', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ theme })
+    });
+    const j = await r.json().catch(()=>({}));
+    if (j && (j.success || j.ok)) {
+      // settings.html 里保存成功后：
+      applyTheme(theme);                                     // 当页立刻换
+      localStorage.setItem('fixlog_prefs', JSON.stringify({theme}));
+      document.cookie = `fixlog_theme=${theme}; Path=/; Max-Age=${7*24*3600}`;
+      // 通知其它已开的分页（监听 storage 事件）
+      localStorage.setItem('fixlog_theme_now', theme);
+    } else {
+      alert('儲存失敗');
+    }
+  });
+
+  themeSel?.addEventListener('change', ()=> applyTheme(themeSel.value));
+  document.addEventListener('DOMContentLoaded', loadPrefs);
+})();
+</script>
+{% endblock %}
