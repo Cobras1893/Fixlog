@@ -1,0 +1,7 @@
+{
+  "admin": {
+    "theme": "dark",
+    "default_sort": "default",
+    "show_categories": true
+  }
+}

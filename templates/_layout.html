@@ -1,6 +1,20 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
+  <script>
+  (function () {
+    try {
+      // 1) 先从 localStorage 取；2) 退而求其次从 cookie 取；3) 默认 light
+      var p = JSON.parse(localStorage.getItem('fixlog_prefs') || '{}');
+      var t = p.theme || (document.cookie.match(/(?:^|;\s*)fixlog_theme=([^;]+)/)||[,''])[1] || 'light';
+      if (t !== 'dark') t = 'light';
+      // 关键：在 CSS 加载前就设定 data-bs-theme，Bootstrap 5.3+ 会用变量切换整站
+      document.documentElement.setAttribute('data-bs-theme', t);
+      // 同步给其他分页：广播当前主题
+      localStorage.setItem('fixlog_theme_now', t);
+    } catch (e) {}
+  })();
+  </script>
   <meta charset="UTF-8">
   <title>{% block title %}FixLog{% endblock %}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -135,7 +149,7 @@
     <li><a href="/" class="text-dark text-decoration-none">🧰 異常維修紀錄</a></li>
     <li><a href="/tools" class="text-dark text-decoration-none">🧰 維修工具</a></li>
     <li><a href="/new" class="text-dark text-decoration-none">➕ 新增異常</a></li>
-    <li><a href="#" class="text-dark text-decoration-none">⚙️ 系統設定</a></li>
+    <li><a href="{{ url_for('settings.settings') }}" class="text-dark text-decoration-none">⚙️ 系統設定</a></li>
     </ul>
     <hr>
     <div class="fw-bold mb-2">📂 資料分類</div>
@@ -177,6 +191,13 @@
     menuToggle.onclick = openMenu;
     menuClose.onclick = closeMenu;
     overlay.onclick = closeMenu;
+  </script>
+  <script>
+    window.addEventListener('storage', function (e) {
+      if (e.key === 'fixlog_theme_now' && e.newValue) {
+        document.documentElement.setAttribute('data-bs-theme', e.newValue === 'dark' ? 'dark' : 'light');
+      }
+    });
   </script>
 </body>
 </html>

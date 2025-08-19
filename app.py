@@ -3,9 +3,13 @@ import json
 import os
 from uuid import uuid4
 from datetime import datetime, timedelta
+from templates.settings.user_store import find_user
+from templates.settings import settings_bp
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_key_123'
+# 註冊設定頁面
+app.register_blueprint(settings_bp)
 
 # 準備資料儲存資料夾與 repairs.json
 os.makedirs('data', exist_ok=True)
@@ -68,7 +72,9 @@ def index():
 #訪客登入路由
 @app.route('/visitor')
 def visitor_view():
-    return render_template('index.html', repairs=repair_data, username='訪客', role='viewer')
+    session['username'] = '訪客'
+    session['role'] = 'viewer'
+    return redirect(url_for('index'))
 
 #搜尋路由
 @app.route('/search')
@@ -134,11 +140,18 @@ def delete_repair(repair_id):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        if request.form['username'] == 'admin' and request.form['password'] == '5550':
-            session['username'] = 'admin'
-            session['role'] = 'technician'
+        username = (request.form.get('username') or '').strip()
+        password = (request.form.get('password') or '').strip()
+        user = find_user(username)
+        # 1) 找得到  2) active=True  3) 密碼符合（此處為明文比對）
+        if user and user.get('active', True) and user.get('password') == password:
+            session['username'] = user['username']
+            session['role'] = user.get('role', 'user')  # 你的管理员是 'technician'
             return redirect(url_for('index'))
-        return render_template('login.html', error='帳號或密碼錯誤')
+        else:
+            # 你原本的错误提示逻辑
+            return render_template('login.html', error='帳號或密碼錯誤，或帳號未啟用')
+    # GET
     return render_template('login.html')
 
 @app.route('/logout')
@@ -189,6 +202,142 @@ def new_repair():
 
     return render_template('new.html', username=session['username'], role=session.get('role'))
 
+@app.route('/new')
+def new_page():
+    # 若 new.html 在 templates 根目錄，保持這樣
+    return render_template('new.html')
+
+# 讓 /new.html 也能打到同一頁（避免硬連結 404）
+@app.route('/new.html')
+def new_page_alias():
+    return new_page()
+
+import os, json, time, uuid
+from flask import request, session, jsonify
+
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+DRAFTS_FILE = os.path.join(BASE_DIR, 'data', 'drafts.json')
+
+def _ensure_drafts_file():
+    os.makedirs(os.path.join(BASE_DIR, 'data'), exist_ok=True)
+    if not os.path.exists(DRAFTS_FILE):
+        with open(DRAFTS_FILE, 'w', encoding='utf-8') as f:
+            f.write('{}')  # 預設 dict 形式：{ username: [ ... ] }
+
+def _load_all():
+    if not os.path.exists(os.path.join(BASE_DIR, 'data')):
+        os.makedirs(os.path.join(BASE_DIR, 'data'), exist_ok=True)
+    if not os.path.exists(DRAFTS_FILE):
+        return {}
+    try:
+        with open(DRAFTS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def _save_all(data):
+    _ensure_drafts_file()
+    with open(DRAFTS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+@app.route('/save_draft', methods=['POST'])
+def save_draft():
+    """相容舊前端：接收 {title, category, details}，自動補 id/owner/updated_at 後寫入"""
+    payload = request.get_json(force=True)
+    title    = (payload.get('title') or '').strip()
+    category = (payload.get('category') or '').strip()
+    details  = payload.get('details') or ''
+
+    user = session.get('username') or 'anonymous'
+    now  = int(time.time())
+
+    draft = {
+        "id": str(uuid.uuid4()),
+        "owner": user,
+        "title": title or "(未命名草稿)",
+        "category": category,
+        "details": details,
+        "updated_at": now
+    }
+
+    data = _load_all()
+
+    # 支援三種儲存形態並盡量往 {username: [ ... ]} 收斂
+    if isinstance(data, dict) and 'drafts' in data and isinstance(data['drafts'], list):
+        # 早期若是 {"drafts":[...]} 就直接 append
+        data['drafts'].append(draft)
+    elif isinstance(data, dict):
+        data.setdefault(user, [])
+        data[user].append(draft)
+    elif isinstance(data, list):
+        data.append(draft)
+    else:
+        data = {user: [draft]}
+
+    _save_all(data)
+    return jsonify({"ok": True, "id": draft["id"]})
+
+@app.route('/load_draft', methods=['GET'])
+def load_draft():
+    """
+    新增：若帶 ?id=xxx，則回傳該草稿內容
+    舊行為：沒帶 id 時，回傳「目前使用者最新一筆」，找不到則回全局最新，再不行回 {}
+    """
+    data = _load_all()
+    draft_id = request.args.get('id', '').strip()
+    cur_user = session.get('username')
+
+    # 將資料展平成清單
+    def as_list(d):
+        items = []
+        if isinstance(d, dict) and 'drafts' in d and isinstance(d['drafts'], list):
+            items = d['drafts']
+        elif isinstance(d, dict) and all(k in d for k in ('title','category','details')):
+            items = [d]
+        elif isinstance(d, dict):
+            for owner, lst in d.items():
+                if isinstance(lst, list):
+                    items.extend(lst)
+        elif isinstance(d, list):
+            items = d
+        return items
+
+    items = as_list(data)
+
+    # ① 有 id：精準找
+    if draft_id:
+        for it in items:
+            if str(it.get('id')) == draft_id or str(it.get('_id')) == draft_id:
+                return jsonify({
+                    "title": it.get("title") or "",
+                    "category": it.get("category") or "",
+                    "details": it.get("details") or ""
+                })
+        return jsonify({})  # 找不到
+
+    # ② 沒 id：回目前使用者最新一筆
+    if cur_user:
+        own = [x for x in items if (x.get('owner') == cur_user)]
+        own.sort(key=lambda x: x.get('updated_at') or 0, reverse=True)
+        if own:
+            latest = own[0]
+            return jsonify({
+                "title": latest.get("title") or "",
+                "category": latest.get("category") or "",
+                "details": latest.get("details") or ""
+            })
+
+    # ③ 退而求其次：全局最新
+    if items:
+        latest = sorted(items, key=lambda x: x.get('updated_at') or 0, reverse=True)[0]
+        return jsonify({
+            "title": latest.get("title") or "",
+            "category": latest.get("category") or "",
+            "details": latest.get("details") or ""
+        })
+
+    return jsonify({})
+
 @app.route('/tools')
 def tools():
     tools_path = 'data/tools.json'
@@ -233,22 +382,6 @@ def delete_tool(tool_id):
     with open(tools_path, 'w', encoding='utf-8') as f:
         json.dump(tools_data, f, ensure_ascii=False, indent=2)
     return redirect(url_for('tools'))
-
-@app.route('/save_draft', methods=['POST'])
-def save_draft():
-    draft_path = 'data/drafts.json'
-    draft = request.get_json()
-    with open(draft_path, 'w', encoding='utf-8') as f:
-        json.dump(draft, f, ensure_ascii=False, indent=2)
-    return '', 204
-
-@app.route('/load_draft')
-def load_draft():
-    draft_path = 'data/drafts.json'
-    if not os.path.exists(draft_path):
-        return {}
-    with open(draft_path, encoding='utf-8') as f:
-        return jsonify(json.load(f))
 
 if __name__ == '__main__':
     app.run(debug=True)

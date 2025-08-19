@@ -120,6 +120,34 @@
       display: none !important;
     }
   </style>
+  <style>
+    /* Quill 编辑器中的图片：等比缩放且不超出内容宽度 */
+    .ql-editor img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 8px auto;         /* 置中 + 留点间距 */
+      object-fit: contain;      /* 避免拉伸 */
+    }
+    /* 预防主题里某些 reset 给 img 写了固定宽高 */
+    .ql-editor img[width], .ql-editor img[height] {
+      width: auto !important;
+      height: auto !important;
+    }
+  </style>
+  <style>
+    .ql-editor img {
+      max-width: 100% !important;   /* 覆盖行内 style/width */
+      height: auto !important;
+      display: block;
+      margin: 8px auto;
+      object-fit: contain;
+    }
+    .ql-editor img[width], .ql-editor img[height] {
+      width: auto !important;
+      height: auto !important;
+    }
+  </style>
 </head>
 <body>
   <nav class="navbar navbar-light bg-white border-bottom shadow-sm px-3 py-2">
@@ -157,7 +185,7 @@
       <ul class="list-unstyled">
         <li><a href="/new" class="text-dark text-decoration-none">➕ 新增異常</a></li>
         <li><a href="/tools" class="text-dark text-decoration-none">🧰 維修工具</a></li>
-        <li><a href="#" class="text-dark text-decoration-none">⚙️ 系統設定</a></li>
+        <li><a href="/settings" class="text-dark text-decoration-none">⚙️ 系統設定</a></li>
       </ul>
     </div>
   </div>
@@ -261,9 +289,158 @@
     draftBtn.onclick = saveDraft;
     publishBtn.parentNode.insertBefore(draftBtn, publishBtn);
 
-    // 自動載入草稿
-    window.addEventListener('DOMContentLoaded', loadDraft);
 
+  </script>
+
+  <script>
+  // —— 统一给图片加响应式样式 + 清理行内尺寸 —— //
+  function normalizeImage(img){
+    if (!img) return;
+    img.removeAttribute('width');
+    img.removeAttribute('height');
+    img.style.width = '';
+    img.style.height = '';
+    img.style.maxWidth = '100%';
+    img.style.height   = 'auto';
+    img.style.display  = 'block';
+    img.style.margin   = '8px auto';
+    img.style.objectFit = 'contain';
+  }
+  function applyResponsiveImages(root = document) {
+    root.querySelectorAll('.ql-editor img').forEach(normalizeImage);
+  }
+
+  // ① 覆写工具列的「图片」按钮（本地选择）
+  const toolbar = quill.getModule('toolbar');
+  if (toolbar) {
+    toolbar.addHandler('image', () => {
+      const input = document.createElement('input');
+      input.type = 'file'; input.accept = 'image/*';
+      input.onchange = () => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+          const range = quill.getSelection(true) || { index: quill.getLength(), length: 0 };
+          quill.insertEmbed(range.index, 'image', e.target.result, 'user');
+          quill.setSelection(range.index + 1, 0);
+          requestAnimationFrame(() => applyResponsiveImages());
+        };
+        reader.readAsDataURL(file);
+      };
+      input.click();
+    });
+  }
+
+  // ② 处理「贴上 / 拖放」的图片（异步插入，延迟清理）
+  quill.root.addEventListener('paste', () => setTimeout(() => applyResponsiveImages(), 0));
+  quill.root.addEventListener('drop',  () => setTimeout(() => applyResponsiveImages(), 0));
+
+  // ③ 监听编辑器内容变化：一旦出现 <img> 就立即规范尺寸
+  const mo = new MutationObserver(muts => {
+    for (const m of muts) {
+      m.addedNodes && m.addedNodes.forEach(n => {
+        if (n.nodeType === 1) {
+          if (n.tagName === 'IMG') normalizeImage(n);
+          n.querySelectorAll && n.querySelectorAll('img').forEach(normalizeImage);
+        }
+      });
+    }
+  });
+  mo.observe(quill.root, { childList: true, subtree: true });
+
+  // ④ 首次载入草稿（或刷新）后，跑一次兜底
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => applyResponsiveImages(), 0);
+  });
+  </script>
+
+  <script>
+  (function () {
+    // 取得 URL 参数
+    function getParam(name){
+      const u = new URL(location.href);
+      return u.searchParams.get(name) || '';
+    }
+
+    // 等待 Quill 实例准备好
+    function waitForEditor(maxWaitMs = 3000) {
+      return new Promise((resolve) => {
+        const start = performance.now();
+        (function loop(){
+          // 常见全局变量名尝试
+          const quillInst = window.quill || window.editor || window.quillEditor;
+          // 或者直接抓 .ql-editor
+          const qlEditor = document.querySelector('.ql-editor');
+          if (quillInst || qlEditor) return resolve({ quillInst, qlEditor });
+          if (performance.now() - start > maxWaitMs) return resolve({ quillInst: null, qlEditor: null });
+          requestAnimationFrame(loop);
+        })();
+      });
+    }
+
+    async function fetchDraftByIdOrLatest() {
+      const did = getParam('draft_id');
+      const url = did ? `/load_draft?id=${encodeURIComponent(did)}` : '/load_draft';
+      const r = await fetch(url);
+      if (!r.ok) return {};
+      return await r.json().catch(() => ({}));
+    }
+
+    function syncBasicFields(data) {
+      const titleVisible = document.querySelector('.custom-title');
+      const titleHidden  = document.querySelector('#title');
+      const catSelectUI  = document.querySelector('select.form-select'); // 你的可见分类下拉（若有其他 selector，请替换）
+      const catHidden    = document.querySelector('#category');          // 隐藏栏位（若没有可忽略）
+
+      if (data.title != null) {
+        if (titleVisible) titleVisible.value = data.title || '';
+        if (titleHidden)  titleHidden.value  = data.title || '';
+      }
+      if (data.category != null) {
+        if (catHidden)   catHidden.value = data.category || '';
+        if (catSelectUI) catSelectUI.value = data.category || '';
+      }
+    }
+
+    function setEditorContent(editors, html) {
+      const { quillInst, qlEditor } = editors;
+      if (typeof html !== 'string') html = '';
+
+      // 1) 有 Quill 实例：用 dangerouslyPasteHTML 最稳
+      if (quillInst && quillInst.clipboard && typeof quillInst.clipboard.dangerouslyPasteHTML === 'function') {
+        quillInst.clipboard.dangerouslyPasteHTML(html);
+        return;
+      }
+
+      // 2) 退路：直接写入编辑器 DOM
+      if (qlEditor) {
+        qlEditor.innerHTML = html;
+        return;
+      }
+
+      // 3) 兜底：若你同时有隐藏 textarea[name="details"]，也一并写入（以防提交）
+      const ta = document.querySelector('textarea[name="details"], #details');
+      if (ta) ta.value = html;
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      // 先拿数据
+      const data = await fetchDraftByIdOrLatest();
+      // 再等编辑器 ready
+      const editors = await waitForEditor();
+
+      // 同步标题/分类
+      syncBasicFields(data);
+
+      // 写入内容（details）
+      setEditorContent(editors, data.details);
+
+      // 同步隐藏 textarea，防止仅编辑器显示而提交为空
+      const ta = document.querySelector('textarea[name="details"], #details');
+      if (ta && typeof data.details === 'string') ta.value = data.details;
+    });
+  })();
   </script>
 </body>
 </html>
