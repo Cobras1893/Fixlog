@@ -5,8 +5,13 @@ from uuid import uuid4
 from datetime import datetime, timedelta
 from templates.settings.user_store import find_user
 from templates.settings import settings_bp
+from werkzeug.exceptions import RequestEntityTooLarge
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB
+UPLOAD_DIR = os.path.join(app.root_path, 'static', 'uploads')
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.secret_key = 'super_secret_key_123'
 # 註冊設定頁面
 app.register_blueprint(settings_bp)
@@ -27,8 +32,13 @@ for repair in repair_data:
     if 'views' not in repair:
         repair['views'] = 0
 
-#主頁面路由
+# 首頁直接導向到登入頁
 @app.route('/')
+def home():
+    return redirect(url_for('login'))
+
+#主頁面路由
+@app.route('/index')
 def index():
     username = session.get('username')
     role = session.get('role')
@@ -74,7 +84,7 @@ def index():
 def visitor_view():
     session['username'] = '訪客'
     session['role'] = 'viewer'
-    return redirect(url_for('index'))
+    return redirect(url_for('tools'))
 
 #搜尋路由
 @app.route('/search')
@@ -143,14 +153,26 @@ def login():
         username = (request.form.get('username') or '').strip()
         password = (request.form.get('password') or '').strip()
         user = find_user(username)
-        # 1) 找得到  2) active=True  3) 密碼符合（此處為明文比對）
-        if user and user.get('active', True) and user.get('password') == password:
+
+        ok = bool(user and user.get('active', True) and user.get('password') == password)
+
+        # 若是 AJAX（前端用 fetch 送），就回 JSON，不直接 redirect
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            if ok:
+                session['username'] = user['username']
+                session['role'] = user.get('role', 'user')
+                return jsonify({"ok": True, "next": url_for("tools")})
+            else:
+                return jsonify({"ok": False, "error": "帳號或密碼錯誤，或帳號未啟用"}), 400
+
+        # 非 AJAX：維持原本傳統流程
+        if ok:
             session['username'] = user['username']
-            session['role'] = user.get('role', 'user')  # 你的管理员是 'technician'
-            return redirect(url_for('index'))
+            session['role'] = user.get('role', 'user')
+            return redirect(url_for('tools'))
         else:
-            # 你原本的错误提示逻辑
             return render_template('login.html', error='帳號或密碼錯誤，或帳號未啟用')
+
     # GET
     return render_template('login.html')
 
@@ -165,11 +187,18 @@ def new_repair():
         return redirect(url_for('login'))
 
     if request.method == 'POST':
-        category = request.form['category']
+        category_raw = request.form['category']            # 可能是 'ERP' 或 'tools_software'
+        is_tools = category_raw.startswith('tools')        # 捕捉所有 tools 類別
+        # 解析子分類（tools_software -> software）
+        tool_subcategory = category_raw.split('_', 1)[1] if category_raw.startswith('tools_') else None
+
         new_entry = {
             'id': str(uuid4()),
             'title': request.form['title'],
-            'category': category,
+            # 對外主分類：統一寫 'tools'；一般分類維持原值
+            'category': 'tools' if is_tools else category_raw,
+            # 只有工具類別才有的欄位：子分類（None 表示一般）
+            'tool_subcategory': tool_subcategory,          # e.g. software / hardware / network / general
             'date': request.form['date'],
             'author': session['username'],
             'status': request.form['status'],
@@ -178,8 +207,9 @@ def new_repair():
             'views': 0
         }
 
-        if category == 'tools':
+        if is_tools:
             tools_path = 'data/tools.json'
+            os.makedirs(os.path.dirname(tools_path), exist_ok=True)
             if not os.path.exists(tools_path):
                 with open(tools_path, 'w', encoding='utf-8') as f:
                     json.dump([], f)
@@ -193,6 +223,8 @@ def new_repair():
             with open(repairs_path, 'w', encoding='utf-8') as f:
                 json.dump(repair_data, f, ensure_ascii=False, indent=2)
 
+        return redirect(url_for('index'))
+
         # 發佈成功後刪除草稿
         draft_path = 'data/drafts.json'
         if os.path.exists(draft_path):
@@ -201,6 +233,19 @@ def new_repair():
         return redirect(url_for('index'))
 
     return render_template('new.html', username=session['username'], role=session.get('role'))
+
+@app.errorhandler(RequestEntityTooLarge)
+def too_large(e): return "Payload too large", 413
+
+@app.post("/upload")
+def upload():
+    f = request.files.get('file')
+    if not f: return jsonify(error="no file"), 400
+    ext = os.path.splitext(f.filename or '')[1].lower()
+    name = f"{uuid.uuid4().hex}{ext or '.png'}"
+    path = os.path.join(UPLOAD_DIR, secure_filename(name))
+    f.save(path)
+    return jsonify(url=url_for('static', filename=f'uploads/{name}'))
 
 @app.route('/new')
 def new_page():

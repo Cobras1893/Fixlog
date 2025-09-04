@@ -2,28 +2,118 @@
 
 {% block content %}
 <div class="container py-5">
-  <h1 class="mb-4 display-5 fw-bold">維修工具列表</h1>
+  <!-- 標題 + 右上分類下拉 -->
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <h1 class="display-5 fw-bold mb-0">異常處理工具</h1>
+
+    {% set current = request.args.get('sub','all') %}
+    <div style="min-width:220px;">
+      <select id="tool-filter-select" class="form-select form-select-sm">
+        <option value="all"      {{ 'selected' if current=='all' else '' }}>全部</option>
+        <option value="outlook"  {{ 'selected' if current=='outlook' else '' }}>Outlook工具</option>
+        <option value="notes"  {{ 'selected' if current=='notes' else '' }}>Notes工具</option>
+        <option value="aspen"  {{ 'selected' if current=='aspen' else '' }}>ASPEN工具</option>
+        <option value="tim"  {{ 'selected' if current=='tim' else '' }}>TIM工具</option>
+        <option value="erp"  {{ 'selected' if current=='erp' else '' }}>ERP工具</option>
+        <option value="nav" {{ 'selected' if current=='nav' else '' }}>防毒工具</option>
+        <option value="system" {{ 'selected' if current=='system' else '' }}>系統工具</option>
+        <option value="other"  {{ 'selected' if current=='other' else '' }}>其他工具</option>
+      </select>
+    </div>
+  </div>
 
   {% if tools %}
-    {% for t in tools %}
-      <div class="card mb-3 shadow-sm">
-        <div class="card-body">
-          <h3 class="card-title">
-            <a href="{{ url_for('tool_detail', tool_id=t.id) }}" class="text-decoration-none">{{ t.title }}</a>
-          </h3>
-          <p class="text-muted mb-1">📅 {{ t.date }} | 👤 {{ t.author }} | 🛠️ {{ t.category }}</p>
-          <p class="text-muted mb-1">👁️ {{ t.views }} 次瀏覽</p>
-          <a href="{{ url_for('tool_detail', tool_id=t.id) }}" class="btn btn-sm btn-outline-primary">閱讀更多</a>
-          {% if session.get('username') == 'admin' %}
-            <form method="POST" action="{{ url_for('delete_tool', tool_id=t.id) }}" class="d-inline" onsubmit="return confirm('確定要刪除這筆工具紀錄嗎？');">
-              <button type="submit" class="btn btn-sm btn-outline-danger">刪除</button>
-            </form>
-          {% endif %}
+    <div class="row">
+      {% for t in tools %}
+        {# data-item-sub 用來前端篩選；沒有子分類就當 general #}
+        <div class="col-12 col-md-6 mb-4" data-item-sub="{{ t.tool_subcategory or 'general' }}">
+          <div class="card h-100 shadow-sm">
+            <div class="card-body d-flex flex-column">
+              <h3 class="card-title">
+                <a href="{{ url_for('tool_detail', tool_id=t.id) }}" class="text-decoration-none">{{ t.title }}</a>
+              </h3>
+
+              <p class="text-muted mb-1">
+                📅 {{ t.date }} | 👤 {{ t.author }}
+                {% if t.tool_subcategory %}
+                  | <span class="badge bg-secondary">{{ t.tool_subcategory }}</span>
+                {% endif %}
+              </p>
+              <p class="text-muted mb-3">👁️ {{ t.views }} 次瀏覽</p>
+
+              <div class="mt-auto">
+                <a href="{{ url_for('tool_detail', tool_id=t.id) }}" class="btn btn-sm btn-outline-primary">閱讀更多</a>
+                {% if session.get('username') == 'admin' %}
+                  <form method="POST" action="{{ url_for('delete_tool', tool_id=t.id) }}" class="d-inline"
+                        onsubmit="return confirm('確定要刪除這筆工具紀錄嗎？');">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">刪除</button>
+                  </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    {% endfor %}
+      {% endfor %}
+    </div>
   {% else %}
     <div class="alert alert-info text-center">🚫 目前尚無維修工具紀錄。</div>
   {% endif %}
 </div>
+
+<!-- 下拉式選單前端篩選（支援網址參數 ?sub=xxx） -->
+<script>
+(function(){
+  const select = document.getElementById('tool-filter-select');
+  const cards  = document.querySelectorAll('[data-item-sub]');
+
+  function applyFilter(val){
+    const target = (val || 'all').toLowerCase();
+    cards.forEach(col=>{
+      const sub = (col.dataset.itemSub || 'general').toLowerCase();
+      col.classList.toggle('d-none', target !== 'all' && sub !== target);
+    });
+    // 更新網址參數（分享/重新整理可保留）
+    const u = new URL(location.href);
+    if (target === 'all') u.searchParams.delete('sub'); else u.searchParams.set('sub', target);
+    history.replaceState(null, '', u.toString());
+  }
+
+  // 初始：讀取 ?sub= 參數套用
+  const init = new URL(location.href).searchParams.get('sub') || select.value || 'all';
+  select.value = init;
+  applyFilter(init);
+
+  // 變更：即時篩選
+  select.addEventListener('change', e => applyFilter(e.target.value));
+})();
+</script>
+
+<script>
+(function(){
+  try{
+    if (sessionStorage.getItem("entryFadeOnce") !== "1") return;
+    sessionStorage.removeItem("entryFadeOnce");
+
+    // 建立與登入頁同色調的覆蓋層
+    const ovl = document.createElement("div");
+    ovl.style.cssText = `
+      position:fixed; inset:0; z-index:9999; pointer-events:none;
+      background: linear-gradient(to bottom, #2e026d, #6d28d9 45%, #a78bfa 90%);
+      opacity:1;
+      transition: opacity .45s ease, filter .45s ease;
+      filter: brightness(1.02) saturate(1.04);
+    `;
+    document.body.appendChild(ovl);
+
+    // 等一個 frame 確保渲染，再淡出
+    requestAnimationFrame(()=>{ 
+      ovl.style.opacity = "0"; 
+      ovl.style.filter = "none";
+    });
+
+    // 完全透明後移除
+    ovl.addEventListener("transitionend", ()=> ovl.remove(), { once:true });
+  }catch(e){}
+})();
+</script>
 {% endblock %}

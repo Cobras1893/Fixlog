@@ -1,50 +1,338 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>登入 - 維修管理系統</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico', v=1) }}">
+  <title>台塑維修管理系統</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body {
-      background-color: #f0f2f5;
+    :root{
+      --bg-top:#2e026d; --bg-mid:#6d28d9; --bg-btm:#a78bfa;
+      --glass-bg:rgba(255,255,255,.08); --glass-brd:rgba(255,255,255,.16);
+      --text:#f8f7ff; --muted:#c7bff1; --btn:#ffffff; --btn-text:#3b2a7a;
+      --shadow: 0 10px 30px rgba(0,0,0,.25);
     }
-    .login-card {
-      max-width: 400px;
-      margin: 80px auto;
-      padding: 30px;
-      background-color: #fff;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Noto Sans",sans-serif;
+      color:var(--text);
+      overflow:hidden;
+      background: linear-gradient(to bottom, var(--bg-top), var(--bg-mid) 45%, var(--bg-btm) 90%);
     }
-    .form-control:focus {
-      box-shadow: none;
+
+    /* STAR */
+    .stars, .stars:after{
+      position:fixed; inset:0; pointer-events:none; z-index:0;
+      background-image:
+        radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,.9) 70%, transparent 72%),
+        radial-gradient(1px 1px at 30% 80%, rgba(255,255,255,.8) 70%, transparent 72%),
+        radial-gradient(1.2px 1.2px at 50% 30%, rgba(255,255,255,.85) 70%, transparent 72%),
+        radial-gradient(1px 1px at 70% 60%, rgba(255,255,255,.75) 70%, transparent 72%),
+        radial-gradient(1.5px 1.5px at 90% 40%, rgba(255,255,255,.8) 70%, transparent 72%),
+        radial-gradient(1px 1px at 20% 60%, rgba(255,255,255,.7) 70%, transparent 72%),
+        radial-gradient(1.2px 1.2px at 80% 15%, rgba(255,255,255,.85) 70%, transparent 72%),
+        radial-gradient(1px 1px at 60% 85%, rgba(255,255,255,.75) 70%, transparent 72%);
+      animation: drift 120s linear infinite;
+      opacity:.9;
     }
+    .stars:after{content:"";filter: blur(.6px);opacity:.7;animation-duration:160s}
+    @keyframes drift{from{transform:translateY(0)}to{transform:translateY(-300px)}}
+
+    /* ===== WAVE ===== */
+    .layers{position:fixed; inset:0; pointer-events:none; z-index:0}
+    .wave{
+      position:absolute; left:-10vw; right:-10vw; bottom:-6vh;
+      height:42vh;
+      opacity:.85;
+      filter: drop-shadow(0 -2px 18px rgba(0,0,0,.15));
+      border-radius: 100% 100% 0 0 / 36% 64% 0 0;
+      background: linear-gradient(to top right, rgba(66,32,149,.90), rgba(124,58,237,.80));
+      animation: waveMorph 8s ease-in-out infinite alternate,
+                waveFloat 9s ease-in-out infinite;
+      transform-origin: 50% 100%;
+    }
+
+    .wave2{
+      height:46vh; bottom:-8vh; opacity:.9;
+      background: linear-gradient(to top right, rgba(50,22,114,.85), rgba(109,40,217,.78));
+      animation-duration: 11s, 12s; animation-delay: .2s, 0s;
+    }
+    .wave1{
+      height:50vh; bottom:-10vh; opacity:.95;
+      background: linear-gradient(to top right, rgba(40,12,94,.85), rgba(88,28,135,.78));
+      animation-duration: 14s, 15s; animation-delay: .35s, .1s;
+    }
+
+    /* 曲率變化：擺動幅度更大 */
+    @keyframes waveMorph{
+      0%   { border-radius: 120% 80% 0 0 / 25% 75% 0 0; }
+      25%  { border-radius: 85% 115% 0 0 / 45% 55% 0 0; }
+      50%  { border-radius: 130% 70% 0 0 / 30% 70% 0 0; }
+      75%  { border-radius: 90% 110% 0 0 / 50% 50% 0 0; }
+      100% { border-radius: 120% 80% 0 0 / 25% 75% 0 0; }
+    }
+
+    /* 上下浮動更明顯 */
+    @keyframes waveFloat{
+      0%   { transform: translateY(0) }
+      50%  { transform: translateY(-30px) }  /* 原本 -10px 改大 */
+      100% { transform: translateY(0) }
+    }
+
+    /* 置中卡片 */
+    .wrap{position:relative; z-index:1; height:100%; display:grid; place-items:center; padding:24px}
+    .card{
+      width:min(92vw, 440px);
+      padding:38px 32px 28px;
+      background:var(--glass-bg);
+      border:1px solid var(--glass-brd);
+      backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%);
+      border-radius:24px; box-shadow: var(--shadow);
+    }
+    h1.title{margin:0 0 22px; text-align:center; font-weight:700; letter-spacing:.5px; font-size:38px; color:#fff; text-shadow:0 2px 16px rgba(0,0,0,.35)}
+
+    .field{position:relative; margin:25px 0;}
+    .field input{
+      width:100%;
+      padding:14px 46px 14px 52px;
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.18);
+      color:var(--text); outline:none; border-radius:16px; font-size:15px;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+    }
+    .field input::placeholder{color:var(--muted)}
+    .field input:focus{border-color:rgba(255,255,255,.5); box-shadow:0 0 0 3px rgba(255,255,255,.15); background:rgba(255,255,255,.12)}
+    .icon{position:absolute; left:16px; top:50%; transform:translateY(-50%); width:22px; height:22px; opacity:.9; display:grid; place-items:center}
+    .icon svg{width:20px;height:20px; fill:#fff}
+
+    .btn{
+      display:block; width:100%; border:0; cursor:pointer; margin-top:10px;
+      padding:14px 18px; border-radius:28px; font-weight:600; font-size:16px;
+      background:var(--btn); color:var(--btn-text); box-shadow:0 8px 18px rgba(0,0,0,.25);
+      transition: transform .08s ease, box-shadow .2s ease, opacity .2s;
+    }
+    .btn:hover{opacity:.95} .btn:active{transform: translateY(1px);}
+
+    .foot{margin-top:16px; text-align:center; font-size:14px; color:var(--muted)}
+    .foot a{color:#fff; text-decoration:none; font-weight:600}
+    .foot a:hover{text-decoration:underline}
+
+    @media (prefers-reduced-motion: reduce){
+      .stars, .stars:after{animation:none}
+      .wave, .wave1, .wave2{animation: none}
+      .btn{transition:none}
+    }
+
+    /* 錯誤效果：震動＋紅框＋訊息 */
+    @keyframes shakeX{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+    .shake{animation:shakeX .48s cubic-bezier(.36,.07,.19,.97)}
+    .is-invalid{border-color:rgba(255,85,85,.9)!important;box-shadow:0 0 0 3px rgba(255,85,85,.2)!important}
+    .is-invalid::placeholder{color:rgba(255,200,200,.9)}
+    .alert-inline{background:rgba(255,0,0,.75);color:#fff;border:none;border-radius:12px;padding:10px 14px;margin:0 0 14px 0}
+    .d-none{display:none!important;} /* 確保 error-box 初始隱藏 */
   </style>
 </head>
 <body>
-  <div class="login-card">
-    <h3 class="text-center mb-4">🔧 維修人員登入</h3>
+  <div class="stars"></div>
 
-    {% if error %}
-      <div class="alert alert-danger text-center" role="alert">
-        {{ error }}
-      </div>
-    {% endif %}
-
-    <form method="POST">
-      <div class="mb-3">
-        <label for="username" class="form-label">帳號</label>
-        <input type="text" class="form-control" id="username" name="username" required>
-      </div>
-      <div class="mb-3">
-        <label for="password" class="form-label">密碼</label>
-        <input type="password" class="form-control" id="password" name="password" required>
-      </div>
-      <button type="submit" class="btn btn-primary w-100">登入</button>
-    </form>
-    <div class="text-center mt-3">
-      <a href="{{ url_for('visitor_view') }}" class="text-decoration-none small">我是一般人員 →</a>
-    </div>
+  <!-- 海浪背景（取代山景） -->
+  <div class="layers">
+    <div class="wave wave1"></div>
+    <div class="wave wave2"></div>
+    <div class="wave"></div>
   </div>
+
+  <main class="wrap">
+    <form id="login-form" class="card" method="POST" autocomplete="on" action="{{ url_for('login') }}">
+      <h1 class="title">FPCCFixSystem</h1>
+
+      <div id="error-box" class="alert-inline d-none" role="alert" aria-live="assertive"></div>
+
+      <div class="field">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5z"/></svg>
+        </span>
+        <input type="text" name="username" placeholder="Username" required />
+      </div>
+
+      <div class="field">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17 9h-1V7a4 4 0 10-8 0v2H7a2 2 0 00-2 2v9a2 2 0 002 2h10a2 2 0 002-2v-9a2 2 0 00-2-2zm-6 8.73V18a1 1 0 112 0v-.27a2 2 0 10-2 0zM10 7a2 2 0 114 0v2h-4V7z"/></svg>
+        </span>
+        <input type="password" name="password" placeholder="Password" required />
+      </div>
+
+      <button class="btn" type="submit">Login</button>
+
+      <p class="foot">訪客登入? <a id="visitor-link" href="{{ url_for('visitor_view') }}">點這邊</a></p>
+    </form>
+  </main>
+
+  <script>
+  (function(){
+    const form = document.getElementById("login-form");
+    const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+    const errorBox = document.getElementById("error-box");
+    const userEl = form ? form.querySelector('[name="username"]') : null;
+    const pwdEl  = form ? form.querySelector('[name="password"]') : null;
+
+    /* ---------- Error helpers ---------- */
+    function showError(msg){
+      if(!errorBox) return;
+      errorBox.textContent = msg || "帳號或密碼錯誤。";
+      errorBox.classList.remove("d-none");
+      [userEl, pwdEl].forEach(el => {
+        if(!el) return;
+        el.classList.remove("shake");
+        void el.offsetWidth; // reset animation
+        el.classList.add("is-invalid","shake");
+        el.addEventListener("animationend", () => el.classList.remove("shake"), { once:true });
+      });
+    }
+    function clearError(){
+      if(errorBox) errorBox.classList.add("d-none");
+      [userEl, pwdEl].forEach(el => el && el.classList.remove("is-invalid"));
+    }
+    [userEl, pwdEl].forEach(el => el && el.addEventListener("input", clearError));
+
+    /* ---------- Loader (fixlog) ---------- */
+    function createLoader(){
+      const wrap = document.createElement("div");
+      wrap.id = "loader";
+      wrap.setAttribute("role","status");
+      wrap.setAttribute("aria-busy","true");
+      wrap.style.cssText = `
+        position:fixed; inset:0; display:grid; place-items:center;
+        background: linear-gradient(to bottom, #2e026d, #6d28d9 45%, #a78bfa 90%);
+        z-index:9999; overflow:hidden;
+      `;
+      wrap.innerHTML = `
+        <style>
+          .typewriter{
+            font:700 clamp(28px,6vw,56px) ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+            letter-spacing:.06em; color:#fff;
+            text-shadow: 0 0 10px rgba(255,255,255,.6), 0 0 20px rgba(124,58,237,.5);
+            transition: transform .35s ease, filter .35s ease, opacity .25s ease;
+          }
+          .text{ white-space:nowrap; border-right:.12em solid #c4b5fd; padding-right:.12em; }
+          @keyframes caret{ 50%{ border-color:transparent } }
+          .blink{ animation: caret .9s step-end infinite; }
+          /* 背景輕微呼吸，避免硬切 */
+          @keyframes bg-breathe {
+            0% { filter: saturate(1) brightness(1); }
+            100%{ filter: saturate(1.08) brightness(1.06); }
+          }
+          #loader{ animation: bg-breathe 680ms ease-in-out both; }
+          /* 最後收尾：縮小+輕微模糊+淡出文字 */
+          .finish { transform: scale(0.985); filter: blur(1.2px) brightness(1.02); opacity: 0; }
+          @media (prefers-reduced-motion: reduce){
+            .blink{ animation:none; border-right:none; }
+            #loader{ animation:none; }
+          }
+        </style>
+        <div class="typewriter" aria-label="載入中…">
+          <span id="typeTarget" class="text blink" aria-live="polite"></span>
+        </div>`;
+      document.body.appendChild(wrap);
+      return wrap;
+    }
+
+    const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+    async function typeOnce(el, text="fixlog"){
+      const pauses = new Set([3]); // "fix" 小停頓
+      el.textContent = "";
+      for(let i=0;i<text.length;i++){
+        const d = 55 + Math.floor(Math.random()*86);
+        await sleep(d);
+        el.textContent += text[i];
+        if(pauses.has(i+1)) await sleep(420);
+      }
+    }
+
+    async function showLoaderThenNavigate(nextUrl){
+      // 通知下一頁做入場淡出（僅一次）
+      try { sessionStorage.setItem("entryFadeOnce","1"); } catch(e){}
+
+      const loader = createLoader();
+      const target = loader.querySelector("#typeTarget");
+
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+        target.textContent = "fixlog";
+        await sleep(450);
+      } else {
+        await typeOnce(target, "fixlog");
+        await sleep(220);
+      }
+
+      // 收尾：文字縮小+淡出，游標停止閃爍，銜接更順
+      target.classList.remove("blink");
+      target.parentElement.classList.add("finish");
+
+      // 稍作停頓等過度完成，再導頁
+      setTimeout(()=>{ location.replace(nextUrl); }, 250);
+    }
+
+    /* ---------- Visitor link ---------- */
+    const visitorLink = document.getElementById("visitor-link");
+    if (visitorLink){
+      visitorLink.addEventListener("click",(e)=>{
+        e.preventDefault();
+        showLoaderThenNavigate(visitorLink.href);
+      });
+    }
+
+    /* ---------- Submit handler ---------- */
+    if (form){
+      form.addEventListener("submit", async (e)=>{
+        e.preventDefault();
+        clearError();
+        submitBtn && (submitBtn.disabled = true);
+
+        const url = form.getAttribute("action") || location.pathname;
+        const formData = new FormData(form);
+
+        try{
+          const res = await fetch(url,{
+            method:"POST",
+            headers:{ "X-Requested-With":"XMLHttpRequest" },
+            body:formData,
+            credentials:"same-origin"
+          });
+
+          if (res.status === 401 || res.status === 400){
+            submitBtn && (submitBtn.disabled = false);
+            showError("帳號或密碼錯誤，請再試一次。");
+            if(pwdEl) pwdEl.value = "";
+            return;
+          }
+          if(!res.ok){
+            submitBtn && (submitBtn.disabled = false);
+            return form.submit();
+          }
+
+          const ct = res.headers.get("content-type") || "";
+          const data = ct.includes("application/json") ? await res.json()
+                                                       : { ok:true, next:"{{ url_for('tools') }}" };
+
+          if(!data || !data.ok){
+            submitBtn && (submitBtn.disabled = false);
+            showError((data && data.msg) || "帳號或密碼錯誤，請再試一次。");
+            if(pwdEl) pwdEl.value = "";
+            return;
+          }
+
+          showLoaderThenNavigate(data.next || "{{ url_for('tools') }}");
+        }catch(err){
+          submitBtn && (submitBtn.disabled = false);
+          form.submit();
+        }
+      });
+    }
+  })();
+  </script>
 </body>
 </html>

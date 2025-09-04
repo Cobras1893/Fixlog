@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico', v=1) }}">
+  <title>台塑維修管理系統</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f0f2f5; }
+    .login-card {
+      max-width: 400px; margin: 80px auto; padding: 30px;
+      background-color: #fff; border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .form-control:focus { box-shadow: none; }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <h3 class="text-center mb-4">⚙️台塑維修系統⚙️</h3>
+
+    {% if error %}
+      <div class="alert alert-danger text-center" role="alert">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <!-- 加上 id 與 action 方便 JS 綁定 -->
+    <form id="login-form" method="POST" action="{{ url_for('login') }}">
+      <div class="mb-3">
+        <label for="username" class="form-label">帳號</label>
+        <input type="text" class="form-control" id="username" name="username" required>
+      </div>
+      <div class="mb-3">
+        <label for="password" class="form-label">密碼</label>
+        <input type="password" class="form-control" id="password" name="password" required>
+      </div>
+      <button type="submit" class="btn btn-primary w-100">登入</button>
+    </form>
+
+    <div class="text-center mt-3">
+      <!-- 訪客入口加 id -->
+      <a id="visitor-link" href="{{ url_for('visitor_view') }}" class="text-decoration-none small">
+        我是一般人員 →
+      </a>
+    </div>
+  </div>
+
+  <!-- 最終版腳本：白底覆蓋層 + 單次打字 + 文字淡出 + 絲滑跳轉 -->
+  <script>
+  (function(){
+    const form = document.getElementById("login-form");
+    const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+
+    // 建立白底覆蓋層（整頁）
+    function createLoader(){
+      const wrap = document.createElement("div");
+      wrap.id = "loader";
+      wrap.setAttribute("role","status");
+      wrap.setAttribute("aria-busy","true");
+      wrap.style.cssText = `
+        position:fixed; inset:0; display:grid; place-items:center;
+        background:#fff; color:#0b0f14; z-index:9999;
+      `;
+      wrap.innerHTML = `
+        <style>
+          .typewriter{
+            font:700 clamp(28px,6vw,56px) ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+            letter-spacing:.06em; filter: drop-shadow(0 4px 16px rgba(0,0,0,.35));
+          }
+          .text{ white-space:nowrap; border-right:.12em solid #79b8ff; padding-right:.12em; }
+          @keyframes caret{ 50%{ border-color:transparent } }
+          .blink{ animation: caret .9s step-end infinite; }
+          /* 只讓字淡出；白底覆蓋層保持在上直到導頁 */
+          .fade-text{ opacity:0; transition: opacity .25s ease; }
+          @media (prefers-reduced-motion: reduce){ .blink{ animation:none; border-right:none; } }
+        </style>
+        <div class="typewriter" aria-label="載入中…">
+          <span id="typeTarget" class="text blink" aria-live="polite"></span>
+        </div>`;
+      document.body.appendChild(wrap);
+      return wrap;
+    }
+
+    const sleep = (ms) => new Promise(r=>setTimeout(r, ms));
+    async function typeOnce(el, text="fixlog"){
+      const pauses = new Set([3]); // 打到 "fix" 稍作停頓
+      el.textContent = "";
+      for(let i=0;i<text.length;i++){
+        const d = 55 + Math.floor(Math.random()*86); // 55~140ms
+        await sleep(d);
+        el.textContent += text[i];
+        if(pauses.has(i+1)) await sleep(420);
+      }
+    }
+
+    // 共用：顯示動畫（至少一輪）→ 文字淡出 → 跳轉
+    async function showLoaderThenNavigate(nextUrl){
+      const loader = createLoader();
+      const target = loader.querySelector("#typeTarget");
+
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+        target.textContent = "fixlog";
+        await sleep(600);
+      } else {
+        await typeOnce(target, "fixlog");
+        await sleep(280);
+      }
+
+      target.classList.add("fade-text");  // 只淡出文字
+      setTimeout(() => { location.replace(nextUrl); }, 250);
+    }
+
+    // 1) 訪客入口：攔截點擊 → 顯示動畫後導頁
+    const visitorLink = document.getElementById("visitor-link");
+    if (visitorLink){
+      visitorLink.addEventListener("click", (e) => {
+        e.preventDefault();
+        showLoaderThenNavigate(visitorLink.href);
+      });
+    }
+
+    // 2) 登入表單：AJAX 成功後顯示動畫；失敗回退同步渲染錯誤
+    if (form){
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        submitBtn && (submitBtn.disabled = true);
+
+        const url = form.getAttribute("action") || location.pathname;
+        const formData = new FormData(form);
+
+        try{
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+            body: formData,
+            credentials: "same-origin"   // 帶上 session cookie
+          });
+
+          if(!res.ok){
+            submitBtn && (submitBtn.disabled = false);
+            return form.submit();        // 失敗 → 交回原流程顯示錯誤
+          }
+
+          const ct = res.headers.get("content-type") || "";
+          const data = ct.includes("application/json") ? await res.json()
+                                                       : { ok:true, next:"{{ url_for('index') }}" };
+
+          if(!data || !data.ok){
+            submitBtn && (submitBtn.disabled = false);
+            return form.submit();
+          }
+
+          // 成功 → 顯示動畫再前往首頁
+          showLoaderThenNavigate(data.next || "{{ url_for('index') }}");
+
+        }catch(err){
+          submitBtn && (submitBtn.disabled = false);
+          form.submit(); // 例外狀況回退
+        }
+      });
+    }
+  })();
+  </script>
+</body>
+</html>

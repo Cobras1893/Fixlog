@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg-top:#2e026d; /* deep violet */
+      --bg-mid:#6d28d9; /* purple */
+      --bg-btm:#a78bfa; /* soft lavender */
+      --glass-bg:rgba(255,255,255,.08);
+      --glass-brd:rgba(255,255,255,.16);
+      --text:#f8f7ff;
+      --muted:#c7bff1;
+      --accent:#ffffff;
+      --btn:#ffffff;
+      --btn-text:#3b2a7a;
+      --focus: #fff;
+      --shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Noto Sans",sans-serif;
+      color:var(--text);
+      overflow:hidden;
+      /* Sky gradient */
+      background: linear-gradient(to bottom, var(--bg-top), var(--bg-mid) 45%, var(--bg-btm) 90%);
+    }
+
+    /* Subtle star field using two layers of radial-gradients */
+    .stars, .stars:after{
+      position:fixed; inset:0; pointer-events:none; z-index:0;
+      background-image:
+        radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,.9) 70%, transparent 72%),
+        radial-gradient(1px 1px at 30% 80%, rgba(255,255,255,.8) 70%, transparent 72%),
+        radial-gradient(1.2px 1.2px at 50% 30%, rgba(255,255,255,.85) 70%, transparent 72%),
+        radial-gradient(1px 1px at 70% 60%, rgba(255,255,255,.75) 70%, transparent 72%),
+        radial-gradient(1.5px 1.5px at 90% 40%, rgba(255,255,255,.8) 70%, transparent 72%),
+        radial-gradient(1px 1px at 20% 60%, rgba(255,255,255,.7) 70%, transparent 72%),
+        radial-gradient(1.2px 1.2px at 80% 15%, rgba(255,255,255,.85) 70%, transparent 72%),
+        radial-gradient(1px 1px at 60% 85%, rgba(255,255,255,.75) 70%, transparent 72%);
+      animation: drift 120s linear infinite;
+      opacity:.9;
+    }
+    .stars:after{
+      content:"";
+      filter: blur(.6px);
+      opacity:.7;
+      animation-duration: 160s;
+    }
+    @keyframes drift{ 
+      from{transform:translateY(0)}
+      to{transform:translateY(-300px)}
+    }
+
+    /* Silhouette mountains & trees (simple layered shapes) */
+    .layers{
+      position:fixed; inset:0; pointer-events:none; z-index:0;
+    }
+    .layer{
+      position:absolute; left:0; right:0; height:46vh; bottom:0;
+      background-repeat:no-repeat;
+      background-size:cover; opacity:.85;
+    }
+    .layer.m1{background-image:linear-gradient(to top right, rgba(40,12,94,.8), rgba(88,28,135,.75)); clip-path:polygon(0 100%,0 50%,10% 60%,22% 48%,34% 62%,48% 44%,60% 58%,72% 46%,86% 60%,100% 50%,100% 100%);} 
+    .layer.m2{height:42vh; background-image:linear-gradient(to top right, rgba(50,22,114,.85), rgba(109,40,217,.75)); clip-path:polygon(0 100%,0 60%,12% 72%,25% 58%,36% 70%,49% 56%,63% 72%,75% 58%,88% 70%,100% 62%,100% 100%);} 
+    .layer.m3{height:38vh; background-image:linear-gradient(to top right, rgba(66,32,149,.9), rgba(124,58,237,.8)); clip-path:polygon(0 100%,0 70%,14% 80%,28% 68%,40% 78%,54% 66%,68% 78%,82% 66%,94% 78%,100% 70%,100% 100%);} 
+
+    /* Center wrapper */
+    .wrap{
+      position:relative; z-index:1; height:100%; display:grid; place-items:center; padding:24px;
+    }
+
+    .card{
+      width:min(92vw, 440px);
+      padding:38px 32px 28px;
+      background:var(--glass-bg);
+      border:1px solid var(--glass-brd);
+      backdrop-filter: blur(14px) saturate(140%);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      border-radius:24px;
+      box-shadow: var(--shadow);
+    }
+
+    h1.title{
+      margin:0 0 22px; text-align:center; font-weight:700; letter-spacing:.5px; font-size:38px;color:#fff;
+      text-shadow:0 2px 16px rgba(0,0,0,.35);
+    }
+
+    .field{position:relative; margin:14px 0;}
+    .field input{
+      width:100%;
+      padding:14px 46px 14px 52px; /* room for icons */
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.18);
+      color:var(--text);
+      outline:none;
+      border-radius:16px;
+      font-size:15px;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+    }
+    .field input::placeholder{color:var(--muted)}
+    .field input:focus{border-color:rgba(255,255,255,.5); box-shadow:0 0 0 3px rgba(255,255,255,.15); background:rgba(255,255,255,.12)}
+
+    .icon{
+      position:absolute; left:16px; top:50%; transform:translateY(-50%);
+      width:22px; height:22px; opacity:.9;
+      display:grid; place-items:center;
+    }
+    .icon svg{width:20px;height:20px; fill:#fff}
+
+    .row{display:flex; align-items:center; justify-content:space-between; gap:12px; margin:10px 0 18px}
+    .ck{display:flex; align-items:center; gap:10px; font-size:14px; color:var(--muted)}
+    .ck input{appearance:none; width:18px; height:18px; border-radius:4px; border:1.5px solid rgba(255,255,255,.5); display:inline-grid; place-content:center; cursor:pointer; background:transparent}
+    .ck input:checked{background:#fff}
+    .ck input:checked::after{content:""; width:10px; height:10px; background:#5b21b6; border-radius:2px}
+
+    a.link{color:#efeafd; text-decoration:none; font-size:14px}
+    a.link:hover{opacity:.85; text-decoration:underline}
+
+    .btn{
+      display:block; width:100%; border:0; cursor:pointer;
+      padding:14px 18px; border-radius:28px; font-weight:600; font-size:16px;
+      background:var(--btn); color:var(--btn-text); box-shadow:0 8px 18px rgba(0,0,0,.25);
+      transition: transform .08s ease, box-shadow .2s ease, opacity .2s;
+    }
+    .btn:hover{opacity:.95}
+    .btn:active{transform: translateY(1px);}
+
+    .foot{margin-top:16px; text-align:center; font-size:14px; color:var(--muted)}
+    .foot a{color:#fff; text-decoration:none; font-weight:600}
+    .foot a:hover{text-decoration:underline}
+
+    @media (prefers-reduced-motion: reduce){
+      .stars, .stars:after{animation:none}
+      .btn{transition:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="stars"></div>
+  <div class="layers">
+    <div class="layer m1"></div>
+    <div class="layer m2"></div>
+    <div class="layer m3"></div>
+  </div>
+
+  <main class="wrap">
+    <form class="card" action="#" method="post" autocomplete="on" action="{{ url_for('login') }}">
+      <h1 class="title">FPCC ReSystem</h1>
+
+      <div class="field">
+        <span class="icon" aria-hidden="true">
+          <!-- user icon -->
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5z"/></svg>
+        </span>
+        <input type="text" name="username" placeholder="Username" required />
+      </div>
+      
+      <div class="field">
+        <span class="icon" aria-hidden="true">
+          <!-- lock icon -->
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17 9h-1V7a4 4 0 10-8 0v2H7a2 2 0 00-2 2v9a2 2 0 002 2h10a2 2 0 002-2v-9a2 2 0 00-2-2zm-6 8.73V18a1 1 0 112 0v-.27a2 2 0 10-2 0zM10 7a2 2 0 114 0v2h-4V7z"/></svg>
+        </span>
+        <input type="password" name="password" placeholder="Password" required />
+      </div>
+
+      <button class="btn" type="submit">Login</button>
+
+      <div class="text-center mt-3">
+        <a id="visitor-link" href="{{ url_for('visitor_view') }}">我是一般人員 →</a>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

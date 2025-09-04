@@ -1,9 +1,7 @@
 {% extends "_layout.html" %}
 
-{% block title %}{{ tool.title }}{% endblock %}
-
 {% block content %}
-<a href="{{ url_for('index') }}" class="btn btn-sm btn-secondary mb-4">← 回首頁</a>
+<a href="{{ url_for('tools') }}" class="btn btn-sm btn-secondary mb-4">← 回首頁</a>
 
 <h1>{{ tool.title }}</h1>
 <p class="text-muted">

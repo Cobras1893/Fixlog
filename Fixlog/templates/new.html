@@ -1,324 +1,157 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="FixLog 系統 - 故障紀錄與教學平台">
-  <meta name="author" content="FixLog Team">
-  <title>異常維修紀錄</title>
-  <link rel="icon" href="/static/img/favicon.ico">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-  <style>
-    body {
-      background-color: #fff;
-      font-family: 'Georgia', serif;
-    }
-    .editor-container {
-      max-width: 1000px;
-      margin: 60px auto;
-      padding: 20px 16px;
-    }
-    .custom-title {
-      font-size: 2.5rem;
-      font-weight: bold;
-      border: none;
-      outline: none;
-      width: 100%;
-      margin-bottom: 20px;
-    }
-    #editor {
-      height: 600px;
-      background-color: white;
-    }
-    .navbar {
-      background-color: #fff;
-      border-bottom: 1px solid #dee2e6;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
-      padding: 0.5rem 1rem;
-    }
-    .navbar .navbar-brand {
-      font-size: 1.6rem;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .navbar .navbar-brand span {
-      font-weight: 600;
-    }
-    .navbar .btn-outline-secondary,
-    .navbar .btn-success {
-      font-size: 0.875rem;
-    }
-    #sidebar {
-      width: 240px;
-      position: fixed;
-      top: 0;
-      left: 0;
-      height: 100%;
-      background-color: white;
-      transform: translateX(-100%);
-      transition: transform 0.3s ease;
-      z-index: 1000;
-    }
-    #overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.3);
-      display: none;
-      z-index: 999;
-    }
-    .sidebar-content {
-      padding-top: 80px;
-      text-align: center;
-    }
-    .sidebar-content ul li a {
-      display: block;
-      padding: 12px;
-      font-size: 1rem;
-    }
-    .hamburger-btn {
-      width: 24px;
-      height: 24px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      position: relative;
-      z-index: 1050;
-    }
-    .hamburger-line {
-      position: absolute;
-      width: 100%;
-      height: 3px;
-      background-color: #333;
-      border-radius: 2px;
-      transition: all 0.3s ease;
-      left: 0;
-    }
-    .hamburger-line.top { top: 4px; }
-    .hamburger-line.middle { top: 10px; }
-    .hamburger-line.bottom { top: 16px; }
-    .hamburger-btn:hover .hamburger-line {
-      transform: scaleX(1.2);
-      background-color: #007bff;
-    }
-    #menu-close {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      font-size: 1.5rem;
-      background: none;
-      border: none;
-      cursor: pointer;
-      z-index: 1050;
-    }
-    .hidden {
-      display: none !important;
-    }
-  </style>
-  <style>
-    /* Quill 编辑器中的图片：等比缩放且不超出内容宽度 */
-    .ql-editor img {
-      max-width: 100%;
-      height: auto;
-      display: block;
-      margin: 8px auto;         /* 置中 + 留点间距 */
-      object-fit: contain;      /* 避免拉伸 */
-    }
-    /* 预防主题里某些 reset 给 img 写了固定宽高 */
-    .ql-editor img[width], .ql-editor img[height] {
-      width: auto !important;
-      height: auto !important;
-    }
-  </style>
-  <style>
-    .ql-editor img {
-      max-width: 100% !important;   /* 覆盖行内 style/width */
-      height: auto !important;
-      display: block;
-      margin: 8px auto;
-      object-fit: contain;
-    }
-    .ql-editor img[width], .ql-editor img[height] {
-      width: auto !important;
-      height: auto !important;
-    }
-  </style>
-</head>
-<body>
-  <nav class="navbar navbar-light bg-white border-bottom shadow-sm px-3 py-2">
-    <div class="container-fluid d-flex justify-content-between align-items-center">
-      <div class="d-flex align-items-center gap-3">
-        <button id="menu-toggle" class="hamburger-btn me-3" aria-label="Open menu">
-          <span class="hamburger-line top"></span>
-          <span class="hamburger-line middle"></span>
-          <span class="hamburger-line bottom"></span>
-        </button>
-        <a class="navbar-brand fw-bold d-flex align-items-center mb-0" href="/" style="font-size: 1.6rem;">
-          🛠️ <span class="ms-2">FixLog</span>
-        </a>
-      </div>
-      <div class="d-flex align-items-center gap-3">
-        <form method="POST" id="repair-form">
-          <button type="submit" class="btn btn-success btn-sm" onclick="prepareSubmission(event)">發布</button>
-          <input type="hidden" name="title" id="title">
-          <input type="hidden" name="category" id="category">
-          <input type="hidden" name="details" id="details">
-          <input type="hidden" name="date" id="date">
-          <input type="hidden" name="status" value="已建立">
-          <input type="hidden" name="summary" value="系統自動產生摘要">
-        </form>
-        <span class="text-muted small">👤 {{ username }}{% if role %}（{{ role }}）{% endif %}</span>
-        <a href="/logout" class="btn btn-sm btn-outline-secondary">登出</a>
-      </div>
-    </div>
-  </nav>
+{% extends "_layout.html" %}
 
-  <div id="sidebar">
-    <button id="menu-close" aria-label="Close">✕</button>
-    <div class="sidebar-content">
-      <div class="fw-bold mb-3">📁 分類選單</div>
-      <ul class="list-unstyled">
-        <li><a href="/new" class="text-dark text-decoration-none">➕ 新增異常</a></li>
-        <li><a href="/tools" class="text-dark text-decoration-none">🧰 維修工具</a></li>
-        <li><a href="/settings" class="text-dark text-decoration-none">⚙️ 系統設定</a></li>
-      </ul>
+{% block page_actions %}
+  <form method="POST" id="repair-form" class="mb-0 d-flex align-items-center">
+    <button type="button" class="btn btn-outline-secondary btn-sm me-2" id="btn-save-draft">儲存草稿</button>
+    <button type="submit" class="btn btn-success btn-sm" id="btn-publish" onclick="prepareSubmission(event)">發布</button>
+    <input type="hidden" name="title" id="title">
+    <input type="hidden" name="category" id="category">
+    <input type="hidden" name="details" id="details">
+    <input type="hidden" name="date" id="date">
+    <input type="hidden" name="status" value="已建立">
+    <input type="hidden" name="summary" value="系統自動產生摘要">
+  </form>
+{% endblock %}
+
+{% block content %}
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<div class="editor-container container py-4" style="max-width:1000px;">
+  <!-- 標題 -->
+  <input type="text" class="custom-title form-control-plaintext fs-2 fw-bold mb-3" placeholder="請輸入標題…">
+
+  <!-- 主分類 / 子分類（主分類半寬，選到工具時顯示右側子分類） -->
+  <div class="row g-2 mb-3">
+    <div class="col-12 col-md-6">
+      <select id="main-category" class="form-select" required onchange="handleCategoryChange(this.value)">
+        <option value="">請選擇分類</option>
+        <option value="Notes">🗒️ Notes</option>
+        <option value="Office">🧾 Office</option>
+        <option value="ERP">💼 ERP</option>
+        <option value="Printer">🖨️ 印表機</option>
+        <option value="Network">🌐 網路相關</option>
+        <option value="tools">🔧 維修工具</option>
+      </select>
+    </div>
+    <div class="col-12 col-md-6 d-none" id="tool-subcategory-wrap">
+      <select id="tool-subcategory" class="form-select"
+              onchange="document.querySelector('#category').value = this.value">
+        <option value="">請選擇分類</option>
+        <option value="tools_outlook">Outlook工具</option>
+        <option value="tools_notes">Notes工具</option>
+        <option value="tools_aspen">ASPEN工具</option>
+        <option value="tools_tim">TIM工具</option>
+        <option value="tools_erp">ERP工具</option>
+        <option value="tools_nav">防毒工具</option>
+        <option value="tools_system">系統工具</option>
+        <option value="tools_other">其他工具</option>
+      </select>
     </div>
   </div>
-  <div id="overlay"></div>
 
-  <div class="editor-container">
-    <input type="text" class="custom-title" placeholder="請輸入標題..." required oninput="document.querySelector('#title').value = this.value">
-    <select class="form-select mb-3" required onchange="document.querySelector('#category').value = this.value">
-      <option value="">請選擇分類</option>
-      <option value="Notes">🗒️ Notes</option>
-      <option value="Office">🧾 Office</option>
-      <option value="ERP">💼 ERP</option>
-      <option value="Printer">🖨️ 印表機</option>
-      <option value="Network">🌐 網路相關</option>
-      <option value="tools">🔧 維修工具</option>
-    </select>
-    <div id="toolbar-container"></div>
-    <div id="editor"></div>
-  </div>
+  <!-- 編輯器 -->
+  <div id="editor" style="height:600px;background:#fff;"></div>
+</div>
 
-  <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
-  <script>
-    const quill = new Quill('#editor', {
-      theme: 'snow',
-      placeholder: '開始撰寫教學內容...',
-      modules: {
-        toolbar: [
-          [{ header: [1, 2, 3, false] }],
-          ['bold', 'italic', 'underline'],
-          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-          ['link', 'image']
-        ]
-      }
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+<script>
+  /* ===== Quill 初始化 ===== */
+  const quill = new Quill('#editor', {
+    theme: 'snow',
+    placeholder: '開始撰寫教學內容...',
+    modules: {
+      toolbar: [
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline'],
+        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+        ['link', 'image']
+      ]
+    }
+  });
+
+  /* ===== 圖片上傳：把 dataURL 轉為 URL（避免 413） ===== */
+  async function uploadImage(file) {
+    if (!file) return null;
+    const fd = new FormData(); fd.append('file', file);
+    const res = await fetch('/upload', { method:'POST', body:fd });
+    if (!res.ok) return null;
+    try { const j = await res.json(); return j && j.url; } catch { return null; }
+  }
+  async function replaceDataUrlsWithUploads() {
+    const imgs = Array.from(quill.root.querySelectorAll('img[src^="data:"]'));
+    for (const img of imgs) {
+      try {
+        const blob = await (await fetch(img.src)).blob();
+        const ext = (blob.type && blob.type.split('/')[1]) || 'png';
+        const file = new File([blob], 'paste.' + ext, { type: blob.type || 'image/png' });
+        const url = await uploadImage(file);
+        if (url) img.setAttribute('src', url);
+      } catch {}
+    }
+  }
+
+  /* ===== 送出（發布） ===== */
+  async function prepareSubmission(e) {
+    e.preventDefault();
+    await replaceDataUrlsWithUploads();
+    document.querySelector('#title').value = document.querySelector('.custom-title').value || '';
+    document.querySelector('#details').value = quill.root.innerHTML;
+
+    const now = new Date();
+    const formatted = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' +
+                      String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') +
+                      ':' + String(now.getMinutes()).padStart(2,'0');
+    document.querySelector('#date').value = formatted;
+
+    document.getElementById('repair-form').submit();
+  }
+
+  /* ===== 儲存草稿 ===== */
+  async function saveDraft() {
+    await replaceDataUrlsWithUploads();
+    const draft = {
+      title: document.querySelector('.custom-title').value,
+      category: document.querySelector('#category').value,
+      details: quill.root.innerHTML
+    };
+    fetch('/save_draft', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(draft)
     });
+    alert('草稿已儲存');
+  }
+  document.getElementById('btn-save-draft').addEventListener('click', saveDraft);
 
-    function prepareSubmission(e) {
-      e.preventDefault();
-      document.querySelector('#details').value = quill.root.innerHTML;
-      const now = new Date();
-      const formatted = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' +
-                        String(now.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') +
-                        ':' + String(now.getMinutes()).padStart(2, '0');
-      document.querySelector('#date').value = formatted;
-      document.getElementById('repair-form').submit();
+  /* ===== 分類切換 ===== */
+  function handleCategoryChange(value) {
+    const hiddenCat = document.querySelector('#category');
+    const toolWrap = document.getElementById('tool-subcategory-wrap');
+    if (value === 'tools') {
+      toolWrap.classList.remove('d-none');
+      const sub = document.getElementById('tool-subcategory').value;
+      hiddenCat.value = sub; // 預設同步第一個子分類
+    } else {
+      toolWrap.classList.add('d-none');
+      hiddenCat.value = value || '';
     }
+  }
+  window.handleCategoryChange = handleCategoryChange;
 
-    const menuToggle = document.getElementById('menu-toggle');
-    const menuClose = document.getElementById('menu-close');
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('overlay');
-
-    function openMenu() {
-      sidebar.style.transform = 'translateX(0)';
-      overlay.style.display = 'block';
-      menuToggle.classList.add('hidden');
-    }
-
-    function closeMenu() {
-      sidebar.style.transform = 'translateX(-100%)';
-      overlay.style.display = 'none';
-      menuToggle.classList.remove('hidden');
-    }
-
-    menuToggle.onclick = openMenu;
-    menuClose.onclick = closeMenu;
-    overlay.onclick = closeMenu;
-
-    // 儲存草稿
-    function saveDraft() {
-      const draft = {
-        title: document.querySelector('.custom-title').value,
-        category: document.querySelector('#category').value,
-        details: quill.root.innerHTML
-      };
-      fetch('/save_draft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(draft)
-      });
-      alert('草稿已儲存');
-    }
-
-    // 載入草稿
-    async function loadDraft() {
-      const res = await fetch('/load_draft');
-      const data = await res.json();
-      if (data.title) document.querySelector('.custom-title').value = data.title;
-      if (data.category) {
-        document.querySelector('#category').value = data.category;
-        document.querySelector('select.form-select').value = data.category;
-      }
-      if (data.details) quill.root.innerHTML = data.details;
-    }
-
-    // 加上草稿按鈕
-    const publishBtn = document.querySelector('form button[type="submit"]');
-    const draftBtn = document.createElement('button');
-    draftBtn.textContent = '儲存草稿';
-    draftBtn.type = 'button';
-    draftBtn.className = 'btn btn-outline-secondary btn-sm me-2';
-    draftBtn.onclick = saveDraft;
-    publishBtn.parentNode.insertBefore(draftBtn, publishBtn);
-
-
-  </script>
-
-  <script>
-  // —— 统一给图片加响应式样式 + 清理行内尺寸 —— //
+  /* ===== 影像樣式一致化（保留原邏輯） ===== */
   function normalizeImage(img){
     if (!img) return;
-    img.removeAttribute('width');
-    img.removeAttribute('height');
-    img.style.width = '';
-    img.style.height = '';
-    img.style.maxWidth = '100%';
-    img.style.height   = 'auto';
-    img.style.display  = 'block';
-    img.style.margin   = '8px auto';
-    img.style.objectFit = 'contain';
+    img.removeAttribute('width'); img.removeAttribute('height');
+    img.style.maxWidth='100%'; img.style.height='auto';
+    img.style.display='block'; img.style.margin='8px auto'; img.style.objectFit='contain';
   }
-  function applyResponsiveImages(root = document) {
-    root.querySelectorAll('.ql-editor img').forEach(normalizeImage);
-  }
-
-  // ① 覆写工具列的「图片」按钮（本地选择）
+  function applyResponsiveImages(root=document){ root.querySelectorAll('.ql-editor img').forEach(normalizeImage); }
   const toolbar = quill.getModule('toolbar');
   if (toolbar) {
     toolbar.addHandler('image', () => {
       const input = document.createElement('input');
-      input.type = 'file'; input.accept = 'image/*';
+      input.type='file'; input.accept='image/*';
       input.onchange = () => {
-        const file = input.files && input.files[0];
-        if (!file) return;
+        const file = input.files && input.files[0]; if (!file) return;
         const reader = new FileReader();
         reader.onload = e => {
           const range = quill.getSelection(true) || { index: quill.getLength(), length: 0 };
@@ -331,12 +164,8 @@
       input.click();
     });
   }
-
-  // ② 处理「贴上 / 拖放」的图片（异步插入，延迟清理）
   quill.root.addEventListener('paste', () => setTimeout(() => applyResponsiveImages(), 0));
   quill.root.addEventListener('drop',  () => setTimeout(() => applyResponsiveImages(), 0));
-
-  // ③ 监听编辑器内容变化：一旦出现 <img> 就立即规范尺寸
   const mo = new MutationObserver(muts => {
     for (const m of muts) {
       m.addedNodes && m.addedNodes.forEach(n => {
@@ -347,100 +176,26 @@
       });
     }
   });
-  mo.observe(quill.root, { childList: true, subtree: true });
+  mo.observe(quill.root, { childList:true, subtree:true });
 
-  // ④ 首次载入草稿（或刷新）后，跑一次兜底
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => applyResponsiveImages(), 0);
-  });
-  </script>
-
-  <script>
-  (function () {
-    // 取得 URL 参数
-    function getParam(name){
-      const u = new URL(location.href);
-      return u.searchParams.get(name) || '';
-    }
-
-    // 等待 Quill 实例准备好
-    function waitForEditor(maxWaitMs = 3000) {
-      return new Promise((resolve) => {
-        const start = performance.now();
-        (function loop(){
-          // 常见全局变量名尝试
-          const quillInst = window.quill || window.editor || window.quillEditor;
-          // 或者直接抓 .ql-editor
-          const qlEditor = document.querySelector('.ql-editor');
-          if (quillInst || qlEditor) return resolve({ quillInst, qlEditor });
-          if (performance.now() - start > maxWaitMs) return resolve({ quillInst: null, qlEditor: null });
-          requestAnimationFrame(loop);
-        })();
-      });
-    }
-
-    async function fetchDraftByIdOrLatest() {
-      const did = getParam('draft_id');
-      const url = did ? `/load_draft?id=${encodeURIComponent(did)}` : '/load_draft';
-      const r = await fetch(url);
-      if (!r.ok) return {};
-      return await r.json().catch(() => ({}));
-    }
-
-    function syncBasicFields(data) {
-      const titleVisible = document.querySelector('.custom-title');
-      const titleHidden  = document.querySelector('#title');
-      const catSelectUI  = document.querySelector('select.form-select'); // 你的可见分类下拉（若有其他 selector，请替换）
-      const catHidden    = document.querySelector('#category');          // 隐藏栏位（若没有可忽略）
-
-      if (data.title != null) {
-        if (titleVisible) titleVisible.value = data.title || '';
-        if (titleHidden)  titleHidden.value  = data.title || '';
+  /* ===== 草稿回填（有就還原分類/內容） ===== */
+  (async function loadDraft(){
+    try{
+      const r = await fetch('/load_draft'); const data = await r.json();
+      if (data.title) document.querySelector('.custom-title').value = data.title;
+      if (data.category) {
+        document.querySelector('#category').value = data.category;
+        if (data.category.startsWith('tools_')) {
+          document.getElementById('main-category').value = 'tools';
+          document.getElementById('tool-subcategory-wrap').classList.remove('d-none');
+          document.getElementById('tool-subcategory').value = data.category;
+        } else {
+          document.getElementById('main-category').value = data.category;
+          document.getElementById('tool-subcategory-wrap').classList.add('d-none');
+        }
       }
-      if (data.category != null) {
-        if (catHidden)   catHidden.value = data.category || '';
-        if (catSelectUI) catSelectUI.value = data.category || '';
-      }
-    }
-
-    function setEditorContent(editors, html) {
-      const { quillInst, qlEditor } = editors;
-      if (typeof html !== 'string') html = '';
-
-      // 1) 有 Quill 实例：用 dangerouslyPasteHTML 最稳
-      if (quillInst && quillInst.clipboard && typeof quillInst.clipboard.dangerouslyPasteHTML === 'function') {
-        quillInst.clipboard.dangerouslyPasteHTML(html);
-        return;
-      }
-
-      // 2) 退路：直接写入编辑器 DOM
-      if (qlEditor) {
-        qlEditor.innerHTML = html;
-        return;
-      }
-
-      // 3) 兜底：若你同时有隐藏 textarea[name="details"]，也一并写入（以防提交）
-      const ta = document.querySelector('textarea[name="details"], #details');
-      if (ta) ta.value = html;
-    }
-
-    window.addEventListener('DOMContentLoaded', async () => {
-      // 先拿数据
-      const data = await fetchDraftByIdOrLatest();
-      // 再等编辑器 ready
-      const editors = await waitForEditor();
-
-      // 同步标题/分类
-      syncBasicFields(data);
-
-      // 写入内容（details）
-      setEditorContent(editors, data.details);
-
-      // 同步隐藏 textarea，防止仅编辑器显示而提交为空
-      const ta = document.querySelector('textarea[name="details"], #details');
-      if (ta && typeof data.details === 'string') ta.value = data.details;
-    });
+      if (data.details) quill.root.innerHTML = data.details;
+    }catch(e){}
   })();
-  </script>
-</body>
-</html>
+</script>
+{% endblock %}

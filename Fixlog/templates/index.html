@@ -1,11 +1,9 @@
 <!-- templates/index.html -->
 {% extends "_layout.html" %}
 
-{% block title %}異常維修紀錄{% endblock %}
-
 {% block content %}
 <div class="d-flex align-items-center justify-content-between mb-4">
-  <h1 class="display-5 fw-bold mb-0">異常維修紀錄總覽</h1>
+  <h1 class="display-5 fw-bold mb-0">異常維修紀錄</h1>
   <div>
     <a href="?sort=default" class="btn btn-outline-secondary btn-sm {% if sort == 'default' %}active{% endif %}">預設</a>
     <a href="?sort=alpha" class="btn btn-outline-secondary btn-sm {% if sort == 'alpha' %}active{% endif %}">筆畫</a>

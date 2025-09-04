@@ -16,7 +16,8 @@
   })();
   </script>
   <meta charset="UTF-8">
-  <title>{% block title %}FixLog{% endblock %}</title>
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico', v=1) }}">
+  <title>{% block title %}台塑維修管理系統{% endblock %}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     .search-wrapper {
@@ -121,7 +122,7 @@
           <span class="hamburger-line middle"></span>
           <span class="hamburger-line bottom"></span>
         </button>
-        <a class="navbar-brand fw-bold d-flex align-items-center mb-0" href="/" style="font-size: 1.6rem;">
+        <a class="navbar-brand fw-bold d-flex align-items-center mb-0" href="{{ url_for('tools') }}" style="font-size: 1.6rem;">
           🛠️ <span class="ms-2">FixLog</span>
         </a>
         <form class="search-wrapper mb-0" method="GET" action="{{ url_for('search') }}">
@@ -146,7 +147,7 @@
 <div class="sidebar-content">
     <div class="fw-bold mb-3">📁 功能選單</div>
     <ul class="list-unstyled">
-    <li><a href="/" class="text-dark text-decoration-none">🧰 異常維修紀錄</a></li>
+    <li><a href="{{ url_for('index') }}" class="text-dark text-decoration-none">🧰 異常維修紀錄</a></li>
     <li><a href="/tools" class="text-dark text-decoration-none">🧰 維修工具</a></li>
     <li><a href="/new" class="text-dark text-decoration-none">➕ 新增異常</a></li>
     <li><a href="{{ url_for('settings.settings') }}" class="text-dark text-decoration-none">⚙️ 系統設定</a></li>
@@ -154,11 +155,11 @@
     <hr>
     <div class="fw-bold mb-2">📂 資料分類</div>
     <ul class="list-unstyled">
-    <li><a href="/?category=Notes" class="text-dark text-decoration-none">🗒️ Notes</a></li>
-    <li><a href="/?category=Office" class="text-dark text-decoration-none">🧾 Office</a></li>
-    <li><a href="/?category=ERP" class="text-dark text-decoration-none">💼 ERP</a></li>
-    <li><a href="/?category=Printer" class="text-dark text-decoration-none">🖨️ 印表機</a></li>
-    <li><a href="/?category=Network" class="text-dark text-decoration-none">🌐 網路相關</a></li>
+    <li><a href="{{ url_for('index', category='Notes') }}"   class="text-dark text-decoration-none">🗒️ Notes</a></li>
+    <li><a href="{{ url_for('index', category='Office') }}"  class="text-dark text-decoration-none">🧾 Office</a></li>
+    <li><a href="{{ url_for('index', category='ERP') }}"     class="text-dark text-decoration-none">💼 ERP</a></li>
+    <li><a href="{{ url_for('index', category='Printer') }}" class="text-dark text-decoration-none">🖨️ 印表機</a></li>
+    <li><a href="{{ url_for('index', category='Network') }}" class="text-dark text-decoration-none">🌐 網路相關</a></li>
     </ul>
 </div>
 </div>

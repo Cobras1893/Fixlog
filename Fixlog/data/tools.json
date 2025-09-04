@@ -1,13 +1,98 @@
 [
   {
-    "id": "ba8eede5-024e-49b4-8b2f-40888de65bbf",
-    "title": "6",
+    "id": "e91116a7-a0f4-429d-b63b-589489a9fee1",
+    "title": "123",
     "category": "tools",
-    "date": "2025-07-16 11:32",
+    "tool_subcategory": "outlook",
+    "date": "2025-08-29 16:22",
     "author": "admin",
     "status": "已建立",
     "summary": "系統自動產生摘要",
-    "details": "<p>6</p>",
-    "views": 0
+    "details": "<p>123</p>",
+    "views": 1
+  },
+  {
+    "id": "8dd70098-fa97-43e2-a362-70049a15b82e",
+    "title": "OUTLOOK_FPG信箱設定",
+    "category": "tools",
+    "tool_subcategory": "outlook",
+    "date": "2025-08-27 11:22",
+    "author": "admin",
+    "status": "已建立",
+    "summary": "系統自動產生摘要",
+    "details": "<h1><a href=\"repairtool://10.103.127.177/app/OA_debug/OUTLOOK_FPG信箱設定/open_fpg_mail_setting.exe\" target=\"_blank\">點此開啟</a></h1><p><br></p><h1>以下為圖文教學</h1><p><br></p><p><img src=\"/static/uploads/d5632e437a0248a5b1f093504914f395.png\" style=\"max-width: 100%; height: auto; display: block; margin: 8px auto; object-fit: contain;\"></p>",
+    "views": 3
+  },
+  {
+    "id": "c105d8ca-7e38-4298-bade-16df27bc8b63",
+    "title": "NOTES備存無法開啟",
+    "category": "tools",
+    "tool_subcategory": "notes",
+    "date": "2025-08-27 11:19",
+    "author": "admin",
+    "status": "已建立",
+    "summary": "系統自動產生摘要",
+    "details": "<h1><a href=\"repairtool://10.103.127.177/app/OA_debug/NOTES備存無法開啟/open_notes_perm_adjust.exe\" target=\"_blank\">點此開啟</a></h1><p><br></p><h2>以下為圖文教學</h2><p><br></p><h1>前言</h1><h2> 資訊部將NOTES公司代碼由06改為04後，因NOTES備存信箱皆放置於本機，變更時有可能未修訂到，故該備存檔案內仍掛06的存取權限屬性，造成與登入Notes的公司別04不一致，導致本機備存信件無存取權限；</h2><h2> 此作業即針對此項問題進行修訂。</h2><p><br></p><h1>作業程序</h1><p><br></p><h2> (1)找一位可開啟自己(以下以A代表)NOTES備存信箱的同仁或同學</h2><h2> &nbsp;(以下以B代表)，或維修室同學</h2><p><br></p><h2>(2)將A本機備存信箱的資料夾，右鍵選內容，上面頁簽點選共用，</h2><h2> &nbsp;將同仁B的Notes代號輸入後確認，再賦予讀寫權限給同仁B</h2><p><img src=\"/static/uploads/6d83dc8d6d7e44a0836141e17b9059f4.png\" style=\"max-width: 100%; display: block; margin: 8px auto; object-fit: contain; height: auto;\"></p><p><br></p><h3>註：備存信箱本機預設路徑為C:\\Lotus\\Notes\\Data\\archive ，附檔名為.NSF</h3><h3> &nbsp;　但部分同仁也可能放在其他資料夾(如D:\\XXX)，故路徑須先行確認，</h3><h3> &nbsp;&nbsp;&nbsp;才知道要到哪一個資料夾做共用的設定。</h3><h3> &nbsp;&nbsp;&nbsp;另若同仁備存信箱放置於NAS (如<a href=\"about:blank\" target=\"_blank\">\\\\10.103.127.177\\</a>製程技術組\\XX)，</h3><h3> &nbsp;&nbsp;&nbsp;則可能<span style=\"color: red;\">無法自行設定共用資料夾</span>，需透過本組有權限之主管才可作業</h3><p><br></p><h2>(3)開啟同仁B的NOTES信件，進行新增備存設定</h2><p><img src=\"/static/uploads/e1a20f775d4649eba70e6dbc9dec5b0c.png\" style=\"max-width: 100%; display: block; margin: 8px auto; object-fit: contain; height: auto;\"></p><p><br></p><p><br></p><h2>(4)建立à輸入描述性名稱à點選圖示à</h2><h2> &nbsp;於檔案名稱中，輸入共用的備存路徑(<a href=\"about:blank\" target=\"_blank\">\\\\TPFPCC1AATPE021\\archive</a>)</h2><p><img src=\"/static/uploads/4b5c5b07a4e64b25b80993ebddbf3b4e.png\" style=\"max-width: 100%; display: block; margin: 8px auto; object-fit: contain; height: auto;\"></p><p><br></p><h2>(5)選取後於視窗中會出現備存檔</h2><p><img src=\"/static/uploads/b2e391d28acb4a8493857ca26261a41c.png\" style=\"max-width: 100%; display: block; margin: 8px auto; object-fit: contain; height: auto;\"></p><p><br></p><p><br></p><h2>(6)點選所需備存檔案(若有多個要重複作業)，資料即會顯示於頁面中</h2><p><img src=\"/static/uploads/abcb7c0cecad47f6bb9e93044f418941.png\" style=\"max-width: 100%; display: block; margin: 8px auto; object-fit: contain; height: auto;\"></p><p><br></p><h2>(7)<span style=\"color: red;\">點選此備存信箱</span>，並於上方依序點選檔案à應用程式à存取控制</h2><p><img src=\"/static/uploads/7faa1e2710df4870b9a0f04c779545b7.png\" style=\"max-width: 100%; display: block; margin: 8px auto; object-fit: contain; height: auto;\"></p><p><br></p><h2>(8)開啟後應該會看到<span style=\"color: red;\">人員的公司代號為06 </span>(附圖為已改為04之版本)，</h2><h2> &nbsp;&nbsp;可重新命名，將06改為04後存檔即可</h2><p><img src=\"/static/uploads/fa9d8eb5e07a4774b4bbccaa948923a0.png\" style=\"max-width: 100%; display: block; margin: 8px auto; object-fit: contain; height: auto;\"></p><p><br></p><h2>(9)上述作業完成後，同仁A無法存取者應已可存取，同仁B則可於電腦中 &nbsp;&nbsp;</h2><h2> &nbsp;<span style=\"color: red;\">移除這組備存，並於同仁A本機中移除步驟(2)所產出之共享</span>。</h2>",
+    "views": 1
+  },
+  {
+    "id": "03e94179-2c2a-4b00-b8f5-44ae29efd902",
+    "title": "NOTES_mail備存設定",
+    "category": "tools",
+    "tool_subcategory": "notes",
+    "date": "2025-08-27 11:02",
+    "author": "admin",
+    "status": "已建立",
+    "summary": "系統自動產生摘要",
+    "details": "<h1><a href=\"repairtool://10.103.127.177/app/OA_debug/NOTES_mail備存設定/open_notes_backup_setting.exe\" target=\"_blank\">點此開啟</a></h1><p><br></p><h1>以下為圖文教學</h1><p><br></p><p><img src=\"/static/uploads/69b15475100f4380b5f06ea8bc8271f8.png\" style=\"max-width: 100%; display: block; margin: 8px auto; object-fit: contain; height: auto;\"></p><p><br></p><p><img src=\"/static/uploads/b43f81759db4410093225c4c79419a2b.png\" style=\"max-width: 100%; display: block; margin: 8px auto; object-fit: contain; height: auto;\"></p><p><br></p><p><img src=\"/static/uploads/649e852fc2684125ad283f284015f83b.png\" style=\"max-width: 100%; display: block; margin: 8px auto; object-fit: contain; height: auto;\"></p><p><br></p><p><img src=\"/static/uploads/d7fd6e664e1f4445ad225ce7e055c7a3.png\" style=\"max-width: 100%; display: block; margin: 8px auto; object-fit: contain; height: auto;\"></p><p><br></p><h1>設定完之後按立即執行就可以進行備存</h1><p><br></p><p><img src=\"/static/uploads/0c8f6030837f43a4849ba26ac5891837.png\" style=\"max-width: 100%; height: auto; display: block; margin: 8px auto; object-fit: contain;\"></p>",
+    "views": 2
+  },
+  {
+    "id": "7e984fc0-1ae7-4ccf-a183-f01ae04c9a34",
+    "title": "Java版本不正確",
+    "category": "tools",
+    "tool_subcategory": "erp",
+    "date": "2025-08-27 09:45",
+    "author": "admin",
+    "status": "已建立",
+    "summary": "系統自動產生摘要",
+    "details": "<h1><a href=\"repairtool://10.103.127.177/app/OA_debug/java版本不正確/install_java_rollback.exe\" target=\"_blank\">點此開啟</a></h1>",
+    "views": 1
+  },
+  {
+    "id": "be0b6015-b5a7-439e-9472-21ae008d8847",
+    "title": "C槽空間調整",
+    "category": "tools",
+    "tool_subcategory": "system",
+    "date": "2025-08-26 17:25",
+    "author": "admin",
+    "status": "已建立",
+    "summary": "系統自動產生摘要",
+    "details": "<h1><a href=\"repairtool://10.103.127.177/app/OA_debug/C槽空間調整/C_disk_adjutment.exe\" target=\"_blank\">點此開啟</a></h1>",
+    "views": 2
+  },
+  {
+    "id": "ebd046e6-0b86-4631-95a2-a833a08a6936",
+    "title": "C槽空間不足一鍵清理",
+    "category": "tools",
+    "tool_subcategory": "system",
+    "date": "2025-08-26 11:58",
+    "author": "admin",
+    "status": "已建立",
+    "summary": "系統自動產生摘要",
+    "details": "<h1><a href=\"repairtool://10.103.127.177/app/OA_debug/C槽空間不足一鍵清理/run_cleaner.bat\" target=\"_blank\">點此開啟</a></h1>",
+    "views": 4
+  },
+  {
+    "id": "20b6289d-7d58-4d5f-96c0-5cb9235d6ee3",
+    "title": "ASPEN無法開啟",
+    "category": "tools",
+    "tool_subcategory": "aspen",
+    "date": "2025-08-22 15:39",
+    "author": "admin",
+    "status": "已建立",
+    "summary": "系統自動產生摘要",
+    "details": "<h1><a href=\"repairtool://10.103.127.177/app/OA_debug/aspen無法開啟/aspen_debug.exe\" target=\"_blank\">點此執行</a></h1>",
+    "views": 5
   }
 ]
